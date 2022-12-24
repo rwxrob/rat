@@ -102,3 +102,23 @@ func Lit(s string) Rule {
 		return Result{r, i, e, nil, err}
 	}
 }
+
+// Seq returns a new rule that is the sequential aggregation of all
+// rules passed to it stopping on the first to return an Err.
+func Seq(rules ...Rule) Rule {
+	return func(r []rune, i int) Result {
+		var err error
+		sub := []Result{}
+		start := i
+		for _, rule := range rules {
+			res := rule(r, i)
+			i = res.End
+			if res.Err != nil {
+				err = res.Err
+				break
+			}
+			sub = append(sub, res)
+		}
+		return Result{r, start, i, sub, err}
+	}
+}

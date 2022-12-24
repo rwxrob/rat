@@ -53,9 +53,18 @@ func ExampleLit() {
 
 }
 
-/*
-	EndBlock := func(r []rune, i int) *rat.Match {
-		rat.Seq(LineFeed, LineFeed)
-		return nil
-	}
-*/
+func ExampleSeq() {
+
+	EndBlock := rat.Seq(rat.Lit("foo"), rat.Lit("baz"))
+
+	buf := []rune("barfoobazfoobut")
+	EndBlock(buf, 3).Print()
+	EndBlock(buf, 0).Print()
+	EndBlock(buf, 9).Print()
+
+	// Output:
+	// {"B":3,"E":9}
+	// {"B":0,"E":0,"X":"expected literal \"foo\""}
+	// {"B":9,"E":13,"X":"expected literal \"baz\""}
+
+}
