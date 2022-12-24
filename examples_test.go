@@ -68,3 +68,13 @@ func ExampleSeq() {
 	// {"B":9,"E":13,"X":"expected literal \"baz\""}
 
 }
+
+func ExampleFuncName() {
+
+	fmt.Println(rat.FuncName(ExampleFuncName))
+	fmt.Println(rat.FuncName(func() {}))
+
+	// Output:
+	// ExampleFuncName
+	// func1
+}

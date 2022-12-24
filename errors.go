@@ -1,6 +1,8 @@
 package rat
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ErrLit struct {
 	Lit string

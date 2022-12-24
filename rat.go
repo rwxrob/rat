@@ -2,7 +2,21 @@ package rat
 
 import (
 	"fmt"
+	"reflect"
+	"runtime"
+	"strings"
 )
+
+// FuncName returns the best guess at the function name of the function
+// passed to it. Returns "func1" (and such) for anonymous functions.
+// This is useful for identifying which Rule was used when printing help
+// and error messages since all rules are functions.
+func FuncName(fn any) string {
+	fp := reflect.ValueOf(fn).Pointer()
+	long := runtime.FuncForPC(fp).Name()
+	parts := strings.Split(long, `.`)
+	return parts[len(parts)-1]
+}
 
 // Rule functions are the fundamental building block of any functional
 // PEG packrat parser. They can be combined together to form other rules
