@@ -1,3 +1,3 @@
-module github.com/rwxrob/rat
+module github.com/rwxrob/pegn
 
 go 1.18

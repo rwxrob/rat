@@ -90,15 +90,15 @@ func ExampleGrammar() {
 
 }
 
-/*
-
 func ExampleLit() {
 
-	Foo := rat.Lit(`foo`)
+	g := rat.NewGrammar()
+	g.Lit(`foo`)
+
 	buf := []rune("barfoobazfo")
-	Foo(buf, 3).Print()
-	Foo(buf, 0).Print()
-	Foo(buf, 9).Print()
+	g.Check(`foo`, buf, 4).Print()
+	//Foo(buf, 0).Print()
+	//Foo(buf, 9).Print()
 
 	// Output:
 	// {"B":3,"E":6}
@@ -107,6 +107,7 @@ func ExampleLit() {
 
 }
 
+/*
 func ExampleSeq() {
 
 	FooBaz := rat.Seq(rat.Lit("foo"), rat.Lit("baz"))
