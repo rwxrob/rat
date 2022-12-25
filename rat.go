@@ -1,14 +1,27 @@
 /*
-Package rat is Inspired by Bryan Ford's PEG packrat parser paper. This no-scanner-required parser is a happy medium between maintainability, simplicity, and performance. Developers can dial up performance by using only Checks, or convenience and simplicity with Grammars and Pack structures enabling simple code generation and dynamic PEGN expression parsing.
+Package rat is Inspired by Bryan Ford's PEG packrat parser paper and is
+PEGN aware (without depending on any external PEGN module). This
+no-scanner-required parser is a happy medium between maintainability,
+simplicity, and performance. Developers can dial up performance by using
+only Checks, or convenience and simplicity with Grammars and Pack
+structures enabling simple code generation and dynamic PEGN expression
+parsing.
+
+Consider github.com/rwxrob/pegn-go when a full pegn.Grammar is required
+(which is an instance of rat.Grammar).
+
 */
 package rat
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/rwxrob/rat/pegn"
 )
 
 // FuncName is a utility function that makes a best guess at the
@@ -42,12 +55,6 @@ func NewGrammar(rules ...Rule) *Grammar {
 		g.Store(rule.Text, rule)
 	}
 	return g
-}
-
-type ErrNotExist struct{ This any }
-
-func (e ErrNotExist) Error() string {
-	return fmt.Sprintf(``)
 }
 
 // Check calls Check on the rule specified by Text key. Sets result
@@ -163,7 +170,7 @@ func (m Result) Print() { fmt.Println(m) }
 func (c *Grammar) Lit(s string) Rule {
 
 	rule := Rule{
-		Text: PEGNString(s),
+		Text: pegn.FromString(s),
 	}
 
 	if cached, has := c.Load(rule.Text); has {
@@ -192,6 +199,10 @@ func (c *Grammar) Lit(s string) Rule {
 	}
 
 	c.Store(rule.Text, rule)
+	it, _ := c.Load(rule.Text)
+	r, _ := it.(Rule)
+	log.Print(r)
+
 	return rule
 }
 

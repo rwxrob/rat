@@ -58,5 +58,10 @@ func FromString(lit string) string {
 		s += " x" + fmt.Sprintf("%x", r)
 
 	}
+
+	if instr {
+		s += "'"
+	}
+
 	return s
 }

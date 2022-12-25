@@ -23,3 +23,9 @@ func (e ErrOneOf) Error() string {
 	}
 	return fmt.Sprintf("expected one of %v", names)
 }
+
+type ErrNotExist struct{ This any }
+
+func (e ErrNotExist) Error() string {
+	return fmt.Sprintf(_ErrNotExist, e.This)
+}

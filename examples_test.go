@@ -96,7 +96,7 @@ func ExampleLit() {
 	g.Lit(`foo`)
 
 	buf := []rune("barfoobazfo")
-	g.Check(`foo`, buf, 4).Print()
+	g.Check(`'foo'`, buf, 3).Print()
 	//Foo(buf, 0).Print()
 	//Foo(buf, 9).Print()
 
