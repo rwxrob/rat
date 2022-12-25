@@ -90,85 +90,76 @@ func ExampleGrammar() {
 
 }
 
-func ExampleLit() {
+func ExampleGrammar_Literal() {
 
 	g := rat.NewGrammar()
-	g.Lit(`foo`)
+	foo := g.Literal(`foo`)
 
 	buf := []rune("barfoobazfo")
+
 	g.Check(`'foo'`, buf, 3).Print()
-	//Foo(buf, 0).Print()
-	//Foo(buf, 9).Print()
+	g.Check(`'foo'`, buf, 0).Print()
+	g.Check(`'foo'`, buf, 9).Print()
+
+	foo.Check(buf, 3).Print()
+	foo.Check(buf, 0).Print()
+	foo.Check(buf, 9).Print()
 
 	// Output:
 	// {"B":3,"E":6}
-	// {"B":0,"E":0,"X":"expected literal \"foo\""}
-	// {"B":9,"E":11,"X":"expected literal \"foo\""}
+	// {"B":0,"E":0,"X":"expected: 'f'"}
+	// {"B":9,"E":11,"X":"expected: 'o'"}
+	// {"B":3,"E":6}
+	// {"B":0,"E":0,"X":"expected: 'f'"}
+	// {"B":9,"E":11,"X":"expected: 'o'"}
 
 }
 
-/*
-func ExampleSeq() {
+func ExampleGrammar_Sequence() {
 
-	FooBaz := rat.Seq(rat.Lit("foo"), rat.Lit("baz"))
+	g := rat.NewGrammar()
+	foo := g.Literal(`foo`)
+	baz := g.Literal(`baz`)
+	foobaz := g.Sequence(foo, baz)
 
 	buf := []rune("barfoobazfoobut")
-	FooBaz(buf, 3).Print()
-	FooBaz(buf, 0).Print()
-	FooBaz(buf, 9).Print()
+
+	g.Check(`'foo' 'baz'`, buf, 3).Print()
+	g.Check(`'foo' 'baz'`, buf, 0).Print()
+	g.Check(`'foo' 'baz'`, buf, 9).Print()
+
+	foobaz.Check(buf, 3).Print()
+	foobaz.Check(buf, 0).Print()
+	foobaz.Check(buf, 9).Print()
 
 	// Output:
 	// {"B":3,"E":9}
-	// {"B":0,"E":0,"X":"expected literal \"foo\""}
-	// {"B":9,"E":13,"X":"expected literal \"baz\""}
+	// {"B":0,"E":0,"X":"expected: 'f'"}
+	// {"B":9,"E":13,"X":"expected: 'a'"}
+	// {"B":3,"E":9}
+	// {"B":0,"E":0,"X":"expected: 'f'"}
+	// {"B":9,"E":13,"X":"expected: 'a'"}
 
 }
 
-func ExampleFuncName() {
-
-	fmt.Println(rat.FuncName(ExampleFuncName))
-	fmt.Println(rat.FuncName(func() {}))
-
-	// Output:
-	// ExampleFuncName
-	// func1
-}
-
-func ExampleErrOneOf() {
-
-	Foo := rat.Rule{
-		Text: `'foo'`,
-		Func: func(r []rune, i int) rat.Result {
-			return rat.Result{T: 1, R: r, B: i, E: i}
-		},
-	}
-
-	Bar := Foo
-
-	Baz := rat.Rule{
-		Text: `'baz'`,
-		Func: func(r []rune, i int) rat.Result { return rat.Result{} },
-	}
+func ExampleGrammar_OneOf() {
 
 	g := new(rat.Grammar)
-	rule := g.OneOf(Foo, Bar, Baz)
+	foo := g.Literal(`foo`)
+	bar := g.Literal(`bar`)
+	baz := g.Literal(`baz`)
+	oneof_foobarbaz := g.OneOf(foo, bar, baz)
 
-	rule.Check(`foobarbaz`, 0).Print()
+	str := `foobarbaz`
+	oneof_foobarbaz.Check([]rune(str), 0).Print()
 
-	// Output:
-	// expected one of [foo foo func1]
-}
+	g.CheckString(`'foo' / 'bar' / 'baz'`, str, 3).Print()
 
-func ExampleOneOf() {
-
-	FooBarBaz := rat.OneOf(rat.Lit("foo"), rat.Lit("bar"), rat.Lit("baz"))
-	buf := []rune("barfoobazfoobut")
-	FooBarBaz(buf, 3).Print()
-	FooBarBaz(buf, 0).Print()
-	FooBarBaz(buf, 12).Print()
+	g.CheckString(`'foo' / 'bar' / 'baz'`, str, 2).Print()
 
 	// Output:
-	// foo
+	// {"B":0,"E":3}
+	// {"B":3,"E":6}
+	// {"B":2,"E":2,"X":"expected: 'foo' / 'bar' / 'baz'"}
 
 }
-*/

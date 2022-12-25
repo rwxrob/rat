@@ -15,33 +15,22 @@ package rat
 
 import (
 	"fmt"
-	"log"
-	"reflect"
-	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/rwxrob/rat/pegn"
 )
 
-// FuncName is a utility function that makes a best guess at the
-// function name of the function passed to it. Returns "func1" (and such)
-// for anonymous functions and generally should not be depended upon for
-// strict uses where the name must be known. In such cases, creation of
-// a proper Rule that associates Text with the rule function is strongly
-// preferred.
-func FuncName(fn any) string {
-	fp := reflect.ValueOf(fn).Pointer()
-	long := runtime.FuncForPC(fp).Name()
-	parts := strings.Split(long, `.`)
-	return parts[len(parts)-1]
-}
-
-// Grammar is primarily a cache (embedded sync.Map) for Rules that are
-// usually keyed to their Rule.Text. The special Grammar.Pack method
-// caches multiple rules represented as different struct types from the
-// x (expression) sub-package allowing pure Go representation of
-// any PEG construct.
+// Grammar embeds sync.Map to cache Rules by their PEGN notation
+// Rule.Text identifiers. Most methods add one or more Rule instances to
+// this cache. The special Pack method caches multiple rules represented
+// by type including string literals, is functions, and struct types
+// from the x sub-package that match many of the methods (ex: OneOf).
+// This allows for pure Go representation of any PEG grammar.
+//
+// Adding rules to a Grammar is functionally equivalent to compiling
+// a regular expression. That Grammar can then be retrieved by its
+// cached definition (top-level Rule.Text) instantly to create parse
+// trees of Results against any buffered text data.
 type Grammar struct {
 	sync.Map
 }
@@ -60,6 +49,7 @@ func NewGrammar(rules ...Rule) *Grammar {
 // Check calls Check on the rule specified by Text key. Sets result
 // error (X) to ErrNotExist if rule cannot be found.
 func (g *Grammar) Check(ruletext string, r []rune, i int) Result {
+
 	it, found := g.Load(ruletext)
 	if !found {
 		return Result{B: i, E: i, X: ErrNotExist{ruletext}}
@@ -69,6 +59,11 @@ func (g *Grammar) Check(ruletext string, r []rune, i int) Result {
 		return Result{B: i, E: i, X: ErrNotExist{ruletext}}
 	}
 	return rule.Check(r, i)
+}
+
+// CheckString takes a string instead of []rune slice.
+func (g *Grammar) CheckString(ruletext string, rstr string, i int) Result {
+	return g.Check(ruletext, []rune(rstr), i)
 }
 
 // Rule combines one rule function (Check) with some identifying text
@@ -86,6 +81,13 @@ func (g *Grammar) Check(ruletext string, r []rune, i int) Result {
 type Rule struct {
 	Text string
 	Check
+}
+
+func (r Rule) String() string {
+	if r.Text == "" {
+		return "Rule"
+	}
+	return r.Text
 }
 
 // Check evaluates the []rune buffer at a specific position for
@@ -163,11 +165,11 @@ func (m Result) String() string {
 // Print is shortcut for fmt.Println(String).
 func (m Result) Print() { fmt.Println(m) }
 
-// Lit first checks for an existing rule for the given string in the
-// Cache and returns if found. Otherwise, it creates a new Rule that
+// Literal first checks for an existing rule for the given string in the
+// sync.Map Cache and returns if found. Otherwise, it creates a new Rule that
 // matches the literal string as a []rune slice and sets the Rule.Text
-// to the string passed.
-func (c *Grammar) Lit(s string) Rule {
+// to the string converted to PEGN notation (see pegn.FromString).
+func (c *Grammar) Literal(s string) Rule {
 
 	rule := Rule{
 		Text: pegn.FromString(s),
@@ -186,23 +188,19 @@ func (c *Grammar) Lit(s string) Rule {
 		runes := []rune(s)
 		for e < len(r) && n < len(runes) {
 			if r[e] != runes[n] {
-				err = ErrLit{s}
+				err = ErrExpected{r[e]}
 				break
 			}
 			e++
 			n++
 		}
 		if n < len(runes) {
-			err = ErrLit{s}
+			err = ErrExpected{runes[n]}
 		}
 		return Result{R: r, B: i, E: e, X: err}
 	}
 
 	c.Store(rule.Text, rule)
-	it, _ := c.Load(rule.Text)
-	r, _ := it.(Rule)
-	log.Print(r)
-
 	return rule
 }
 
@@ -216,21 +214,11 @@ func (s Sequence) String() string {
 	return str
 }
 
-type OneOf []Rule
-
-func (s OneOf) String() string {
-	str := s[0].Text
-	for _, v := range s[1:] {
-		str += " / " + v.Text
-	}
-	return str
-}
-
-// Seq returns a new rule that is the sequential aggregation of all
+// Sequence returns a new rule that is the sequential aggregation of all
 // rules passed to it stopping on the first to return an Err. Each
 // result is added as a Sub match along with the last failed match (if
 // any).
-func (c *Grammar) Seq(rules ...Rule) Rule {
+func (c *Grammar) Sequence(rules ...Rule) Rule {
 
 	rule := Rule{
 		Text: Sequence(rules).String(),
@@ -265,6 +253,16 @@ func (c *Grammar) Seq(rules ...Rule) Rule {
 	return rule
 }
 
+type OneOf []Rule
+
+func (s OneOf) String() string {
+	str := s[0].Text
+	for _, v := range s[1:] {
+		str += " / " + v.Text
+	}
+	return str
+}
+
 // OneOf returns the results of the first rule to successfully match.
 func (c *Grammar) OneOf(rules ...Rule) Rule {
 
@@ -285,7 +283,7 @@ func (c *Grammar) OneOf(rules ...Rule) Rule {
 				return res
 			}
 		}
-		return Result{R: r, B: i, E: i, X: ErrOneOf{rules}}
+		return Result{R: r, B: i, E: i, X: ErrExpected{rule}}
 	}
 
 	c.Store(rule.Text, rule)

@@ -63,5 +63,5 @@ func FromString(lit string) string {
 		s += "'"
 	}
 
-	return s
+	return s[1:]
 }

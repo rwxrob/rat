@@ -8,9 +8,9 @@ import (
 
 func ExampleFromString() {
 
-	fmt.Println(pegn.FromString("some\tthing\nuh\rwhat\r\nsmile😈"))
+	fmt.Printf("%q", pegn.FromString("some\tthing\nuh\rwhat\r\nsmile😈"))
 
 	// Output:
-	// 'some' TAB 'thing' LF 'uh' CR 'what' CR LF 'smile' x1f608
+	// "'some' TAB 'thing' LF 'uh' CR 'what' CR LF 'smile' x1f608"
 
 }
