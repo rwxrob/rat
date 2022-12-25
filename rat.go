@@ -165,6 +165,10 @@ func (m Result) String() string {
 // Print is shortcut for fmt.Println(String).
 func (m Result) Print() { fmt.Println(m) }
 
+type Literal string
+
+func (l Literal) String() string { return pegn.FromString(string(l)) }
+
 // Literal first checks for an existing rule for the given string in the
 // sync.Map Cache and returns if found. Otherwise, it creates a new Rule that
 // matches the literal string as a []rune slice and sets the Rule.Text
@@ -172,7 +176,7 @@ func (m Result) Print() { fmt.Println(m) }
 func (c *Grammar) Literal(s string) Rule {
 
 	rule := Rule{
-		Text: pegn.FromString(s),
+		Text: Literal(s).String(),
 	}
 
 	if cached, has := c.Load(rule.Text); has {
