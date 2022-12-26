@@ -1,6 +1,9 @@
 package pegn
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // FromString returns a PEGN grammar converted from a Go string literal.
 // PEGN "Strings" are composed of visible ASCII characters excluding all
@@ -63,5 +66,8 @@ func FromString(lit string) string {
 		s += "'"
 	}
 
+	if strings.Index(s[1:], " ") > 0 {
+		return "(" + s[1:] + ")"
+	}
 	return s[1:]
 }
