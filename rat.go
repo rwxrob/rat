@@ -15,16 +15,18 @@ package rat
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
-
-	"github.com/rwxrob/rat/pegn"
 )
+
+// ------------------------------ Grammar -----------------------------
 
 // Grammar embeds sync.Map to cache Rules by their PEGN notation
 // Rule.Text identifiers. Most methods add one or more Rule instances to
 // this cache. The special Pack method caches multiple rules represented
 // by type including string literals, is functions, and struct types
-// from the x sub-package that match many of the methods (ex: OneOf).
+// from the x sub-package that match many of the methods (ex: In).
 // This allows for pure Go representation of any PEG grammar.
 //
 // Adding rules to a Grammar is functionally equivalent to compiling
@@ -66,6 +68,8 @@ func (g *Grammar) CheckString(ruletext string, rstr string, i int) Result {
 	return g.Check(ruletext, []rune(rstr), i)
 }
 
+// ------------------------------- Rule -------------------------------
+
 // Rule combines one rule function (Check) with some identifying text
 // providing rich possibilities for representing grammars textually.
 // Rule functions are the fundamental building blocks of any functional
@@ -90,6 +94,8 @@ func (r Rule) String() string {
 	return r.Text
 }
 
+// ------------------------------- Check ------------------------------
+
 // Check evaluates the []rune buffer at a specific position for
 // a specific grammar rule and should generally only be used from an
 // encapsulating Rule so that it has a Text identifier associated with
@@ -106,6 +112,8 @@ func (r Rule) String() string {
 // specific user-facing error messages and promotes succinct rule
 // development.
 type Check func(r []rune, i int) Result
+
+// ------------------------------ Result ------------------------------
 
 // Result contains the result of an evaluated Rule function along with
 // its own slice (Buf) referring to the same underlying array in memory
@@ -165,26 +173,116 @@ func (m Result) String() string {
 // Print is shortcut for fmt.Println(String).
 func (m Result) Print() { fmt.Println(m) }
 
-type Literal string
+// ------------------------------ ToPEGN ------------------------------
 
-func (l Literal) String() string { return pegn.FromString(string(l)) }
+// ToPEGN returns a PEGN grammar string converted from a Go string
+// literal consisting of printable ASCII characters (graph + SP) except
+// single quote and wrapped in single quotes. All other runes are PEGN
+// hex escaped (ex: 😊 xe056) except for the following popular literals:
+//
+//     * TAB
+//     * CR
+//     * LF
+//
+// ToPEGN panics if string passed has zero length.
+func ToPEGN(lit string) string {
+	var s string
+	var instr bool
+	for _, r := range lit {
 
-// Literal first checks for an existing rule for the given string in the
-// sync.Map Cache and returns if found. Otherwise, it creates a new Rule that
-// matches the literal string as a []rune slice and sets the Rule.Text
-// to the string converted to PEGN notation (see pegn.FromString).
-func (c *Grammar) Literal(s string) Rule {
+		if 'a' <= r && r <= 'z' {
+			if !instr {
+				s += " '" + string(r)
+				instr = true
+				continue
+			}
+			s += string(r)
+			continue
+		}
+
+		if instr {
+			s += "'"
+			instr = false
+		}
+
+		// common tokens
+		switch r {
+		case '\r':
+			s += " CR"
+			continue
+		case '\n':
+			s += " LF"
+			continue
+		case '\t':
+			s += " TAB"
+			continue
+		case '\'':
+			s += " SQ"
+			continue
+		}
+
+		// escaped
+		s += " x" + fmt.Sprintf("%x", r)
+
+	}
+
+	if instr {
+		s += "'"
+	}
+
+	if strings.Index(s[1:], " ") > 0 {
+		return "(" + s[1:] + ")"
+	}
+	return s[1:]
+}
+
+// -------------------------------- Any -------------------------------
+
+// Specific number (n) of any rune as in "rune{n}".
+type Any int
+
+// String fulfills the fmt.Stringer as PEGN "rune{n}".
+func (n Any) String() string { return `rune{` + strconv.Itoa(int(n)) + `}` }
+
+func (n Any) Rule() Rule {
 
 	rule := Rule{
-		Text: Literal(s).String(),
+		Text: n.String(),
 	}
 
-	if cached, has := c.Load(rule.Text); has {
-		if rule, ok := cached.(Rule); ok {
-			return rule
+	rule.Check = func(r []rune, i int) Result {
+		remaining := len(r[i:])
+		if remaining >= int(n) {
+			return Result{B: i, E: i + int(n)}
 		}
+		return Result{B: i, E: i + remaining - int(n), X: ErrExpected{rule}}
 	}
 
+	return rule
+}
+
+func (c *Grammar) Any(n int) Rule {
+	rule := Any(n).Rule()
+	c.Store(rule.Text, rule)
+	return rule
+}
+
+// -------------------------------- Lit -------------------------------
+
+// Lit is a shortcut method of considering a string as a efficient
+// method of storing what would otherwise be a Seq of PEGN rules.
+type Lit string
+
+// String fulfills the fmt.Stringer interface by delegating ToPEGN.
+func (s Lit) String() string { return ToPEGN(string(s)) }
+
+// Lit dynamically creates a Rule for the given string and sets the
+// Rule.Text to PEGN notation from ToPEGN for the given input
+// argument.
+func (s Lit) Rule() Rule {
+	rule := Rule{
+		Text: Lit(s).String(),
+	}
 	rule.Check = func(r []rune, i int) Result {
 		var err error
 		var n int
@@ -203,29 +301,78 @@ func (c *Grammar) Literal(s string) Rule {
 		}
 		return Result{R: r, B: i, E: e, X: err}
 	}
+	return rule
+}
+
+func (c *Grammar) Lit(s string) Rule {
+	rule := Lit(s).Rule()
+	c.Store(rule.Text, rule)
+	return rule
+}
+
+// -------------------------------- One -------------------------------
+
+// One of rules matches as in "(foo / bar)".
+type One []Rule
+
+func (s One) String() string {
+	str := "(" + s[0].Text
+	for _, v := range s[1:] {
+		str += " / " + v.Text
+	}
+	return str + ")"
+}
+
+// One returns the results of the first rule to successfully match.
+// Equivalent to PEGN "(foo / bar)".
+func (c *Grammar) One(rules ...Rule) Rule {
+
+	rule := Rule{
+		Text: One(rules).String(),
+	}
+
+	if cached, has := c.Load(rule.Text); has {
+		if rule, ok := cached.(Rule); ok {
+			return rule
+		}
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		for _, rule := range rules {
+			res := rule.Check(r, i)
+			if res.X == nil {
+				return res
+			}
+		}
+
+		return Result{R: r, B: i, E: i, X: ErrExpected{rule}}
+	}
 
 	c.Store(rule.Text, rule)
 	return rule
 }
 
-type Sequence []Rule
+// -------------------------------- Seq -------------------------------
 
-func (s Sequence) String() string {
-	str := s[0].Text
+// Sequence as in "(foo bar)".
+type Seq []Rule
+
+func (s Seq) String() string {
+	str := "(" + s[0].Text
 	for _, v := range s[1:] {
 		str += " " + v.Text
 	}
-	return str
+	return str + ")"
 }
 
-// Sequence returns a new rule that is the sequential aggregation of all
+// Seq returns a new rule that is the sequential aggregation of all
 // rules passed to it stopping on the first to return an Err. Each
 // result is added as a Sub match along with the last failed match (if
-// any).
-func (c *Grammar) Sequence(rules ...Rule) Rule {
+// any). Equivalent to PEGN "(foo bar)".
+func (c *Grammar) Seq(rules ...Rule) Rule {
 
 	rule := Rule{
-		Text: Sequence(rules).String(),
+		Text: Seq(rules).String(),
 	}
 
 	if cached, has := c.Load(rule.Text); has {
@@ -257,39 +404,85 @@ func (c *Grammar) Sequence(rules ...Rule) Rule {
 	return rule
 }
 
-type OneOf []Rule
+// -------------------------------- Opt -------------------------------
 
-func (s OneOf) String() string {
-	str := s[0].Text
-	for _, v := range s[1:] {
-		str += " / " + v.Text
-	}
-	return str
+// Optional as in "(foo bar)?".
+type Opt []Rule
+
+// Finite number (n) as in "(foo bar){n}".
+type N struct {
+	N     int
+	Rules []Rule
 }
 
-// OneOf returns the results of the first rule to successfully match.
-func (c *Grammar) OneOf(rules ...Rule) Rule {
+// Minimum (m) and maximum (n) as in "(foo bar){m,n}".
+type MinMax struct {
+	Min   int
+	Max   int
+	Rules []Rule
+}
 
-	rule := Rule{
-		Text: OneOf(rules).String(),
+// Minimum (m) as in "(foo bar){m,}".
+type Min struct {
+	Min   int
+	Rules []Rule
+}
+
+// Maximum (m) as in "(foo bar){0,m}".
+type Max struct {
+	Max   int
+	Rules []Rule
+}
+
+// Zero minimum as in "(foo bar)*".
+type Min0 []Rule
+
+// One minimum as in "(foo bar)+".
+type Min1 []Rule
+
+// Range between runes as in "[a-z]".
+type Rng struct {
+	Beg rune
+	End rune
+}
+
+// Capture as sub as in "< foo bar >".
+type Cap []Rule
+
+// Tagged capture as sub as in "<=tag foo bar >".
+type Tag struct {
+	Tag   string
+	Rules []Rule
+}
+
+// Positive lookahead as in "&(foo bar)".
+type Pos []Rule
+
+// Negative lookahead as in "!(foo bar)".
+type Neg []Rule
+
+// Up to as in "((!(foo bar) rune)*)".
+type To []Rule
+
+// Up to inclusive as in "((!(foo bar) rune)*(foo bar))".
+type ToI []Rule
+
+// ------------------------------ Errors ------------------------------
+
+type ErrExpected struct {
+	This any
+}
+
+func (e ErrExpected) Error() string {
+	switch v := e.This.(type) {
+	case rune:
+		e.This = ToPEGN(string(v))
 	}
+	return fmt.Sprintf(_ErrExpected, e.This)
+}
 
-	if cached, has := c.Load(rule.Text); has {
-		if rule, ok := cached.(Rule); ok {
-			return rule
-		}
-	}
+type ErrNotExist struct{ This any }
 
-	rule.Check = func(r []rune, i int) Result {
-		for _, rule := range rules {
-			res := rule.Check(r, i)
-			if res.X == nil {
-				return res
-			}
-		}
-		return Result{R: r, B: i, E: i, X: ErrExpected{rule}}
-	}
-
-	c.Store(rule.Text, rule)
-	return rule
+func (e ErrNotExist) Error() string {
+	return fmt.Sprintf(_ErrNotExist, e.This)
 }
