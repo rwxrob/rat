@@ -85,6 +85,8 @@ func Pack(in ...any) *Grammar {
 }
 */
 
+// Maker implements a Make method that returns a Rule with Text and
+// Check function assigned.
 type Maker interface {
 	Make() Rule
 }
@@ -98,7 +100,8 @@ type Maker interface {
 // The order of type evaluation and caching is prioritized as follows:
 //
 //     Rule     <as is>
-//     Maker    it.Rule()
+//     Maker    it.Make()
+//
 //     N        <:foo 'foo' > / Foo <- 'foo' / Foo <- ws* < 'foo' >  ws*
 //     string   <inferred Lit>
 //     Lit      "foo\n" -> ('foo' LF)
@@ -138,12 +141,31 @@ func Make(it any) Rule {
 		return Rune(v).Make()
 	case string:
 		return Lit(v).Make()
+	case []rune:
+		return Lit(string(v)).Make()
+	case []byte:
+		return Lit(string(v)).Make()
+	case int:
+		return Lit(strconv.Itoa(v)).Make()
+	case int8:
+		return Lit(strconv.Itoa(int(v))).Make()
+	case int64:
+		return Lit(strconv.Itoa(int(v))).Make()
+	case uint:
+		return Lit(strconv.Itoa(int(v))).Make()
+	case uint8:
+		return Lit(strconv.Itoa(int(v))).Make()
+	case uint32:
+		return Lit(strconv.Itoa(int(v))).Make()
+	case uint64:
+		return Lit(strconv.Itoa(int(v))).Make()
 	}
 	return Rule{}
 }
 
-// Rules makes rules out of the input arguments by passing them to Make.
-// Consider Pack if a Grammar is also wanted.
+// Rules function makes rules from the input arguments by passing them
+// to Make one at a time and appending them to the resulting []Rule
+// slice.  Consider Pack if a Grammar is also wanted.
 func Rules(in ...any) []Rule {
 	rules := []Rule{}
 	for _, it := range in {
@@ -483,7 +505,7 @@ func ToPEGN(it any) string {
 	return s[1:]
 }
 
-// ----------------------------- RuleAnyN -----------------------------
+// -------------------------------- Any -------------------------------
 
 // Specific number (n) of any rune as in "rune{n}".
 type Any int
@@ -502,7 +524,7 @@ func (n Any) String() string {
 	}
 }
 
-func (n Any) Rule() Rule {
+func (n Any) Make() Rule {
 
 	rule := Rule{
 		Text: n.String(),
@@ -516,12 +538,6 @@ func (n Any) Rule() Rule {
 		return Result{B: i, E: i + remaining - int(n), X: ErrExpected{rule}}
 	}
 
-	return rule
-}
-
-func (c *Grammar) RuleAnyN(n int) Rule {
-	rule := Any(n).Rule()
-	c.Store(rule.Text, rule)
 	return rule
 }
 
@@ -581,7 +597,7 @@ func (s Lit) Make() Rule {
 	return rule
 }
 
-// ----------------------------- RuleOneOf ----------------------------
+// -------------------------------- One -------------------------------
 
 // One of rules matches as in "(foo / bar)".
 type One []Rule
@@ -621,13 +637,7 @@ func (rules One) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleOneOf(rules ...Rule) Rule {
-	rule := One(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// --------------------------- RuleSequence ---------------------------
+// -------------------------------- Seq -------------------------------
 
 // Sequence as in "(foo bar)".
 type Seq []Rule
@@ -671,13 +681,7 @@ func (rules Seq) Make() Rule {
 	}
 }
 
-func (c *Grammar) RuleSequence(rules ...Rule) Rule {
-	rule := Seq(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// --------------------------- RuleOptional ---------------------------
+// -------------------------------- Opt -------------------------------
 
 // Optional as in "(foo bar)?".
 type Opt []Rule
@@ -708,13 +712,7 @@ func (rules Opt) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleOptional(rules ...Rule) Rule {
-	rule := Opt(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ---------------------------- RuleRepeat ----------------------------
+// -------------------------------- Rep -------------------------------
 
 // Repeat n times as in "(foo bar){n}".
 type Rep struct {
@@ -753,13 +751,7 @@ func (rules Rep) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleRepeat(n int, rules ...Rule) Rule {
-	rule := Rep{n, rules}.Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ---------------------------- RuleMinMax ----------------------------
+// ------------------------------- MMax -------------------------------
 
 // Minimum (m) and maximum (n) as in "(foo bar){m,n}".
 type MMax struct {
@@ -793,13 +785,7 @@ func (it MMax) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleMinMax(min, max int, rules ...Rule) Rule {
-	rule := MMax{min, max, rules}.Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ------------------------------ RuleMin -----------------------------
+// -------------------------------- Min -------------------------------
 
 // Minimum (m) as in "(foo bar){m,}".
 type Min struct {
@@ -829,13 +815,7 @@ func (it Min) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleMin(min int, rules ...Rule) Rule {
-	rule := Min{min, rules}.Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ------------------------------ RuleMax -----------------------------
+// -------------------------------- Max -------------------------------
 
 // Maximum (m) as in "(foo bar){0,m}".
 type Max struct {
@@ -868,13 +848,7 @@ func (it Max) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleMax(max int, rules ...Rule) Rule {
-	rule := Max{max, rules}.Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ----------------------------- RuleRange ----------------------------
+// -------------------------------- Rng -------------------------------
 
 // Range as in "[a-z]", "[A-Z]", ,"[0-7]", "[x40-x54]". Note that PEGN
 // supports ranges outside of the Unicode valid ranges, but rat does
@@ -905,13 +879,7 @@ func (it Rng) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleRange(beg, end rune) Rule {
-	rule := Rng{beg, end}.Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ----------------------------- RuleMin0 -----------------------------
+// ------------------------------- Min0 -------------------------------
 
 // Zero minimum as in "(foo bar)*".
 type Min0 []Rule
@@ -942,13 +910,7 @@ func (rules Min0) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleMin0(rules ...Rule) Rule {
-	rule := Min0(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ----------------------------- RuleMin1 -----------------------------
+// ------------------------------- Min1 -------------------------------
 
 // One minimum as in "(foo bar)+"
 type Min1 []Rule
@@ -979,13 +941,7 @@ func (rules Min1) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleMin1(rules ...Rule) Rule {
-	rule := Min1(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ---------------------------- RuleUnicode ---------------------------
+// --------------------------------- U --------------------------------
 
 // Unicode class as in p{L}, p{Arabic}, etc.
 type U string
@@ -1005,12 +961,6 @@ func (it U) Make() Rule {
 		// TODO
 		return Result{B: i, E: i}
 	}
-	return rule
-}
-
-func (c *Grammar) RuleUnicode(uni string) Rule {
-	rule := U(uni).Make()
-	c.Store(rule.Text, rule)
 	return rule
 }
 
@@ -1046,15 +996,9 @@ func (it Set) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleSet(set string) Rule {
-	rule := Set(set).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
 // --------------------------------- N --------------------------------
 
-// Named capture as in "Foo <- 'foo'" or "<:Foo 'foo' >"
+// Named/node capture as in "Foo <- 'foo'" or "<:Foo 'foo' >"
 // or "Foo <- ws* < 'foo' > ws*" (rat.N{`Foo`,rules}). The Name becomes
 // the Rule.Text that is cached when a Grammar is used.
 type N struct {
@@ -1104,13 +1048,7 @@ func (it N) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleNamed(name string, rules ...Rule) Rule {
-	rule := N{name, rules}.Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// ------------------------------ RuleIs ------------------------------
+// -------------------------------- Is --------------------------------
 
 // Positive lookahead as in "&(foo bar)".
 type Is []Rule
@@ -1140,12 +1078,6 @@ func (rules Is) Make() Rule {
 		// TODO
 		return Result{B: i, E: i}
 	}
-	return rule
-}
-
-func (c *Grammar) RuleIs(rules ...Rule) Rule {
-	rule := Is(rules).Make()
-	c.Store(rule.Text, rule)
 	return rule
 }
 
@@ -1182,13 +1114,7 @@ func (rules Not) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleNot(rules ...Rule) Rule {
-	rule := Not(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
-
-// -------------------------------- To --------------------------------
+// -------------------------------- Too --------------------------------
 
 // Up to non-inclusive as in "...(foo bar)".
 type To []Rule
@@ -1221,18 +1147,12 @@ func (rules To) Make() Rule {
 	return rule
 }
 
-func (c *Grammar) RuleTo(rules ...Rule) Rule {
-	rule := To(rules).Make()
-	c.Store(rule.Text, rule)
-	return rule
-}
+// -------------------------------- Too -------------------------------
 
-// -------------------------------- ToI -------------------------------
+// Up to and including (too) as in "..(foo bar)".
+type Too []Rule
 
-// Up to inclusive as in "..(foo bar)".
-type Toi []Rule
-
-func (rules Toi) String() string {
+func (rules Too) String() string {
 	switch len(rules) {
 	case 0:
 		return ""
@@ -1249,7 +1169,7 @@ func (rules Toi) String() string {
 	}
 }
 
-func (rules Toi) Make() Rule {
+func (rules Too) Make() Rule {
 	rule := Rule{
 		Text: rules.String(),
 	}
@@ -1257,12 +1177,6 @@ func (rules Toi) Make() Rule {
 		// TODO
 		return Result{B: i, E: i}
 	}
-	return rule
-}
-
-func (c *Grammar) RuleToInc(rules ...Rule) Rule {
-	rule := Toi(rules).Make()
-	c.Store(rule.Text, rule)
 	return rule
 }
 
@@ -1288,29 +1202,6 @@ func (p PEGN) Make() Rule {
 		// TODO
 		return Result{B: i, E: i}
 	}
-	return rule
-}
-
-// PEGN parses the input (string, []byte, []rune, or PEGN) and returns
-// a single top level Rule covering the mini-grammar passed as an
-// argument. A name is required to avoid unnecessarily long caching
-// keys.
-func (g *Grammar) PEGN(name string, in any) Rule {
-	var rule Rule
-
-	switch v := in.(type) {
-	case string:
-		rule = PEGN{name, v}.Make()
-	case []byte:
-		rule = PEGN{name, string(v)}.Make()
-	case []rune:
-		rule = PEGN{name, string(v)}.Make()
-	case PEGN:
-		rule.Text = name
-		rule = v.Make()
-	}
-
-	g.Store(rule.Text, rule)
 	return rule
 }
 
