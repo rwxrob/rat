@@ -100,6 +100,7 @@ func ExampleGrammar() {
 
 }
 
+/*
 func ExampleGrammar_Lit() {
 
 	g := new(rat.Grammar)
@@ -157,7 +158,6 @@ func ExampleGrammar_RuleOneOf() {
 
 }
 
-/*
 func ExamplePack_One() {
 
 	g := rat.Pack(rat.One{`foo`, `bar`, `baz`})
