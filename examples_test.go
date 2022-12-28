@@ -8,12 +8,22 @@ import (
 
 func ExampleResult() {
 
+	names := []string{`Unknown`, `First`, `LetterM`}
+
 	r := []rune(`Something`)
-	m := rat.Result{R: r, B: 3, E: 5}
+	m := rat.Result{N: 2, R: r, B: 3, E: 5}
 	fmt.Println(m)
+	fmt.Println(names[m.N])
+
+	mx := rat.Result{R: r, B: 4, E: 4, X: fmt.Errorf(`bork`)}
+	fmt.Println(mx)
+	fmt.Println(names[mx.N])
 
 	// Output:
-	// {"B":3,"E":5}
+	// {"N":2,"B":3,"E":5}
+	// LetterM
+	// {"B":4,"E":4,"X":"bork"}
+	// Unknown
 }
 
 func ExampleCheck() {
@@ -76,7 +86,7 @@ func ExampleGrammar() {
 		},
 	}
 
-	g := rat.NewGrammar(LF)
+	g := rat.Pack(LF)
 
 	buf := []rune("some\nthing\n")
 	g.Check("LF", buf, 4).Print()
@@ -92,8 +102,8 @@ func ExampleGrammar() {
 
 func ExampleGrammar_Lit() {
 
-	g := rat.NewGrammar()
-	g.Lit(`foo`)
+	g := new(rat.Grammar)
+	g.RuleLiteral(`foo`)
 
 	buf := []rune("barfoobazfo")
 	g.Check(`'foo'`, buf, 3).Print()
@@ -109,10 +119,10 @@ func ExampleGrammar_Lit() {
 
 func ExampleGrammar_Seq() {
 
-	g := rat.NewGrammar()
-	foo := g.Lit(`foo`)
-	baz := g.Lit(`baz`)
-	g.Seq(foo, baz)
+	g := new(rat.Grammar)
+	foo := g.RuleLiteral(`foo`)
+	baz := g.RuleLiteral(`baz`)
+	g.RuleSequence(foo, baz)
 
 	buf := []rune("barfoobazfoobut")
 
@@ -127,13 +137,13 @@ func ExampleGrammar_Seq() {
 
 }
 
-func ExampleGrammar_One() {
+func ExampleGrammar_RuleOneOf() {
 
 	g := new(rat.Grammar)
-	foo := g.Lit(`foo`)
-	bar := g.Lit(`bar`)
-	baz := g.Lit(`baz`)
-	one_foobarbaz := g.One(foo, bar, baz)
+	foo := g.RuleLiteral(`foo`)
+	bar := g.RuleLiteral(`bar`)
+	baz := g.RuleLiteral(`baz`)
+	one_foobarbaz := g.RuleOneOf(foo, bar, baz)
 
 	str := `foobarbaz`
 	one_foobarbaz.Check([]rune(str), 0).Print()
@@ -147,6 +157,23 @@ func ExampleGrammar_One() {
 
 }
 
+func ExamplePack_One() {
+
+	g := rat.Pack(rat.One{`foo`, `bar`, `baz`})
+
+	str := `foobarbaz`
+	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 3).Print()
+	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 2).Print()
+
+	// Output:
+	// {"B":0,"E":3}
+	// {"B":3,"E":6}
+	// {"B":2,"E":2,"X":"expected: ('foo' / 'bar' / 'baz')"}
+
+}
+
+/*
+
 func ExampleToPEGN() {
 
 	fmt.Printf("%q\n", rat.ToPEGN("some\tthing\nuh\rwhat\r\nsmile😈"))
@@ -157,3 +184,4 @@ func ExampleToPEGN() {
 	// "'some'"
 
 }
+*/

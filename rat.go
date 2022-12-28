@@ -278,7 +278,7 @@ func (m Result) MarshalJSON() ([]byte, error) {
 	s := "{"
 
 	if m.N > 0 {
-		s += fmt.Sprintf(`"N":%v`, m.N)
+		s += fmt.Sprintf(`"N":%v,`, m.N)
 	}
 
 	s += fmt.Sprintf(`"B":%v,"E":%v`, m.B, m.E)
