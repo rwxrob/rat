@@ -162,6 +162,14 @@ func ExamplePack_One() {
 
 	g := rat.Pack(rat.One{`foo`, `bar`, `baz`})
 
+	title := pegn.Compile(`'# ' print{0,70}`)
+
+	title := r.Seq{ `# `, r.Max{70, r.Print} }
+
+	endblock := r.Seq{"\n","\n"}
+
+	g := rat.Pack(title)
+
 	str := `foobarbaz`
 	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 3).Print()
 	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 2).Print()

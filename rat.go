@@ -197,13 +197,20 @@ type Grammar struct {
 	Errors   []error
 }
 
-// Pack returns a new Grammar after making all the input arguments into
-// rules using Rules and Make. See Make specifically for the argument
-// types allowed.
+// Pack returns a new compiled (memoized) Grammar.
 func Pack(in ...any) *Grammar {
 	g := new(Grammar)
-	for _, rule := range Rules(in...) {
-		g.Store(rule.Text, rule)
+	for _, it := range in {
+		switch v := it.(type) {
+		case string:
+		case []rune:
+		case rune:
+		case Rule:
+			txt := v.String()
+			if _, have := g.Load(txt); !have {
+				g.Store(txt, v)
+			}
+		}
 	}
 	return g
 }
@@ -266,17 +273,9 @@ func (g *Grammar) CheckString(key string, rstr string, i int) Result {
 // Rules have no external dependencies allowing them to be safely
 // combined from multiple packages. For best performance, Rules
 // should be created and used from a Grammar with proper caching.
-type Rule struct {
-	Maker
-	Text  string
-	Check CheckFunc
-}
-
-func (r Rule) String() string {
-	if r.Text == "" {
-		return "Rule"
-	}
-	return r.Text
+type Rule interface {
+	String() string
+	Check(r []rune, i int) Result
 }
 
 // ----------------------------- CheckFunc ----------------------------
@@ -507,38 +506,19 @@ func ToPEGN(it any) string {
 
 // -------------------------------- Any -------------------------------
 
-// Specific number (n) of any rune as in "rune{n}".
-type Any int
+// Specific number (N) of any rune as in PEGN "rune{n}".
+type Any struct{ N int }
 
-func (n Any) String() string {
-	if n < 0 {
-		return ""
-	}
-	switch n {
-	case 0:
-		return `!rune`
-	case 1:
-		return `rune`
-	default:
-		return `rune{` + strconv.Itoa(int(n)) + `}`
-	}
+func (it Any) String() string {
+	return `Any{` + strconv.Itoa(is.N) + `}`
 }
 
-func (n Any) Make() Rule {
-
-	rule := Rule{
-		Text: n.String(),
+func (n Any) Check(r []rune, i int) Result {
+	remaining := len(r[i:])
+	if remaining >= int(n) {
+		return Result{B: i, E: i + int(n)}
 	}
-
-	rule.Check = func(r []rune, i int) Result {
-		remaining := len(r[i:])
-		if remaining >= int(n) {
-			return Result{B: i, E: i + int(n)}
-		}
-		return Result{B: i, E: i + remaining - int(n), X: ErrExpected{rule}}
-	}
-
-	return rule
+	return Result{B: i, E: i + remaining - int(n), X: ErrExpected{rule}}
 }
 
 // ------------------------------- Rune -------------------------------
