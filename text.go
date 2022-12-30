@@ -8,5 +8,5 @@ const (
 	_ErrExpected        = `expected: %v`
 	_ErrBadType         = `unknown type: %v (%[1]T)`
 	_ErrArgs            = `missing or incorrect arguments: %v (%[1]T)`
-	_ErrDefaultPackType = `DefaultPackType must be Sequence or OneOf`
+	_ErrDefaultPackType = `Invalid DefaultPackType`
 )

@@ -6,6 +6,26 @@ import (
 	"github.com/rwxrob/rat"
 )
 
+func ExampleResult() {
+
+	names := []string{`Unknown`, `First`, `LetterM`}
+
+	r := []rune(`Something`)
+	m := rat.Result{N: 2, R: r, B: 3, E: 5}
+	fmt.Println(m)
+	fmt.Println(names[m.N])
+
+	mx := rat.Result{R: r, B: 4, E: 4, X: fmt.Errorf(`bork`)}
+	fmt.Println(mx)
+	fmt.Println(names[mx.N])
+
+	// Output:
+	// {"N":2,"B":3,"E":5}
+	// LetterM
+	// {"B":4,"E":4,"X":"bork"}
+	// Unknown
+}
+
 func ExampleLit() {
 
 	foo := rat.Lit{"f\x23oo\t👩bar"}
@@ -57,9 +77,18 @@ func ExampleDefaultPack() {
 	rat.DefaultPackType = rat.OnePackType
 	rat.Pack(`foo`, 42).Print()
 
+	rat.DefaultPackType = 34
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(r)
+		}
+	}()
+	rat.Pack(`foo`, 42).Print()
+
 	// Output:
 	// rat.Seq{"foo", "42"}
 	// rat.One{"foo", "42"}
+	// Invalid DefaultPackType
 }
 
 /*

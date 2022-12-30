@@ -52,6 +52,8 @@ func Pack(in ...any) *Grammar {
 			g.main = g.Add(Seq(in))
 		case OnePackType:
 			g.main = g.Add(One(in))
+		default:
+			panic(_ErrDefaultPackType)
 		}
 
 	}
