@@ -86,23 +86,23 @@ func (s Lit) Check(r []rune, i int) Result {
 
 type Seq []any
 
-func (s Seq) String() string {
-	switch len(s) {
+func (rules Seq) String() string {
+	switch len(rules) {
 	case 0:
 		return ""
 	case 1:
-		return fmt.Sprintf(`%v.Seq{%v}`, StringPrefix, Quoted(s[0]))
+		return fmt.Sprintf(`%v.Seq{%v}`, StringPrefix, Quoted(rules[0]))
 	}
-	str := `rat.Seq{` + fmt.Sprintf(`%v`, Quoted(s[0]))
-	for _, it := range s[1:] {
+	str := `rat.Seq{` + fmt.Sprintf(`%v`, Quoted(rules[0]))
+	for _, it := range rules[1:] {
 		str += fmt.Sprintf(`, %v`, Quoted(it))
 	}
 	return str + `}`
 }
 
-func (s Seq) Print() { fmt.Println(s) }
+func (rules Seq) Print() { fmt.Println(rules) }
 
-func (s Seq) Check(r []rune, i int) Result {
+func (rules Seq) Check(r []rune, i int) Result {
 	// TODO
 	return Result{}
 }
@@ -111,23 +111,23 @@ func (s Seq) Check(r []rune, i int) Result {
 
 type One []any
 
-func (s One) String() string {
-	switch len(s) {
+func (rules One) String() string {
+	switch len(rules) {
 	case 0:
 		return ""
 	case 1:
-		return fmt.Sprintf(`rat.One{%v}`, Quoted(s[0]))
+		return fmt.Sprintf(`rat.One{%v}`, Quoted(rules[0]))
 	}
-	str := `rat.One{` + fmt.Sprintf(`%v`, Quoted(s[0]))
-	for _, it := range s[1:] {
+	str := `rat.One{` + fmt.Sprintf(`%v`, Quoted(rules[0]))
+	for _, it := range rules[1:] {
 		str += fmt.Sprintf(`, %v`, Quoted(it))
 	}
 	return str + `}`
 }
 
-func (s One) Print() { fmt.Println(s) }
+func (rules One) Print() { fmt.Println(rules) }
 
-func (s One) Check(r []rune, i int) Result {
+func (rules One) Check(r []rune, i int) Result {
 	// TODO
 	return Result{}
 }
