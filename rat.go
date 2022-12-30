@@ -22,7 +22,8 @@ const (
 	OnePackType = 2
 )
 
-var DefaultPackType = SeqPackType
+var StringPrefix = `rat.`
+var PackType = SeqPackType
 
 func Pack(in ...any) *Grammar {
 	g := NewGrammar()
@@ -47,13 +48,13 @@ func Pack(in ...any) *Grammar {
 		}
 
 	default:
-		switch DefaultPackType {
+		switch PackType {
 		case SeqPackType:
 			g.main = g.Add(Seq(in))
 		case OnePackType:
 			g.main = g.Add(One(in))
 		default:
-			panic(_ErrDefaultPackType)
+			panic(_ErrPackType)
 		}
 
 	}

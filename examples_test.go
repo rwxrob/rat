@@ -71,13 +71,15 @@ func ExamplePack_primitives() {
 
 }
 
-func ExampleDefaultPack() {
+func ExamplePackType() {
 
-	rat.Pack(`foo`, 42).Print()
-	rat.DefaultPackType = rat.OnePackType
+	// default is SeqPackType
 	rat.Pack(`foo`, 42).Print()
 
-	rat.DefaultPackType = 34
+	rat.PackType = rat.OnePackType
+	rat.Pack(`foo`, 42).Print()
+
+	rat.PackType = 34
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println(r)
@@ -88,7 +90,7 @@ func ExampleDefaultPack() {
 	// Output:
 	// rat.Seq{"foo", "42"}
 	// rat.One{"foo", "42"}
-	// Invalid DefaultPackType
+	// Invalid PackType
 }
 
 /*

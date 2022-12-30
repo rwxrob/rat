@@ -6,10 +6,37 @@ import (
 
 // ----------------------------- CheckFunc ----------------------------
 
+// CheckFunc examines the []rune buffer at a specific position for
+// a specific grammar rule and should generally only be used from an
+// encapsulating Rule so that it has a Text identifier associated with
+// it. One or more Rules may, however, encapsulate the same CheckFunc
+// function.
+//
+// CheckFunc MUST return a Result indicating success or failure by
+// setting Err for failure. (Note that this is unlike many packrat
+// designs that return nil to indicate rule failure.)
+//
+// CheckFunc MUST set Err if unable to match the entire rule and MUST
+// advance to the End to the farthest possible position in the []rune
+// slice before failure occurred. This allows for better recovery and
+// specific user-facing error messages while promoting succinct rule
+// development.
 type CheckFunc func(r []rune, i int) Result
 
 // ------------------------------- Rule -------------------------------
 
+// Rule combines one rule function (Check) with some identifying text
+// (by way of String and Print) providing rich possibilities for
+// representing grammars textually.  Rule functions are the fundamental
+// building blocks of any functional PEG packrat parser.
+//
+// The String must produce valid, compilable Go code. By default this is
+// the same as how they rule would be passed to the Add or Pack
+// functions. The prefix used is StringPrefix.
+//
+// Rules have no external dependencies allowing them to be safely
+// combined from multiple packages. For best performance, however, Rules
+// should be created and used from a central grammar with proper caching.
 type Rule interface {
 	String() string               // valid Go rat struct syntax
 	Print()                       // must fmt.Println(it.String())
@@ -26,7 +53,7 @@ func (r arule) Print()                       { fmt.Println(r.string) }
 func (a arule) Check(r []rune, i int) Result { return a.CheckFunc(r, i) }
 
 // all rule structs are designed to be used with composite definitions
-// and MUST be structs with at least a V value
+// so that the pseudo-syntax uses braces for the most part
 
 // ------------------------------ Lit ---------------------------------
 
@@ -64,7 +91,7 @@ func (s Seq) String() string {
 	case 0:
 		return ""
 	case 1:
-		return fmt.Sprintf(`rat.Seq{%v}`, Quoted(s[0]))
+		return fmt.Sprintf(`%v.Seq{%v}`, StringPrefix, Quoted(s[0]))
 	}
 	str := `rat.Seq{` + fmt.Sprintf(`%v`, Quoted(s[0]))
 	for _, it := range s[1:] {
