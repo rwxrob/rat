@@ -6,191 +6,94 @@ import (
 	"github.com/rwxrob/rat"
 )
 
-func ExampleResult() {
+func ExampleLit() {
 
-	names := []string{`Unknown`, `First`, `LetterM`}
-
-	r := []rune(`Something`)
-	m := rat.Result{N: 2, R: r, B: 3, E: 5}
-	fmt.Println(m)
-	fmt.Println(names[m.N])
-
-	mx := rat.Result{R: r, B: 4, E: 4, X: fmt.Errorf(`bork`)}
-	fmt.Println(mx)
-	fmt.Println(names[mx.N])
+	foo := rat.Lit{"f\x23oo\t👩bar"}
+	fmt.Println(foo)
+	foo.Print()
 
 	// Output:
-	// {"N":2,"B":3,"E":5}
-	// LetterM
-	// {"B":4,"E":4,"X":"bork"}
-	// Unknown
+	// "f#oo\t👩bar"
+	// "f#oo\t👩bar"
 }
 
-func ExampleCheck() {
+func ExampleSeq() {
 
-	LF := func(r []rune, i int) rat.Result {
-		var err error
-		if r[i] != '\n' {
-			err = fmt.Errorf(`expected line feed (\n)`)
-		}
-		return rat.Result{R: r, B: i, E: i + 1, X: err}
-	}
-
-	buf := []rune("some\nthing\n")
-	LF(buf, 4).Print()
-	LF(buf, 1).Print()
-	LF(buf, 10).Print()
+	foobar := rat.Seq{`foo`, 20 + 45, `bar`}
+	fmt.Println(foobar)
+	foobar.Print()
 
 	// Output:
-	// {"B":4,"E":5}
-	// {"B":1,"E":2,"X":"expected line feed (\\n)"}
-	// {"B":10,"E":11}
-
+	// rat.Seq{"foo", "65", "bar"}
+	// rat.Seq{"foo", "65", "bar"}
 }
 
-func ExampleRule() {
+func ExampleGrammar_empty() {
+	g := rat.NewGrammar()
+	g.Print()
+	fmt.Println(g.IsZero())
+	// Output:
+	// <empty>
+	// true
+}
 
-	LF := rat.Rule{
-		Text: "LF",
-		Check: func(r []rune, i int) rat.Result {
-			var err error
-			if r[i] != '\n' {
-				err = fmt.Errorf(`expected line feed (\n)`)
-			}
-			return rat.Result{R: r, B: i, E: i + 1, X: err}
-		},
-	}
+func ExamplePack_primitives() {
 
-	buf := []rune("some\nthing\n")
-	LF.Check(buf, 4).Print()
-	LF.Check(buf, 1).Print()
-	LF.Check(buf, 10).Print()
+	smile := int32('\u263A')
+	g := rat.Pack(
+		-127, -32767, -9223372036854775808, -9785, int8(127), uint8(255), 3.141592653589793238,
+		int16(32767), int64(9223372036854775807), int(smile), '\x00', []byte(`bytes`), false,
+		[]rune{'f', 'o', 'o'}, `some`, true, int32(9785), smile, '👩')
+	g.Print()
 
 	// Output:
-	// {"B":4,"E":5}
-	// {"B":1,"E":2,"X":"expected line feed (\\n)"}
-	// {"B":10,"E":11}
+	// rat.Seq{"-127", "-32767", "-9223372036854775808", "-9785", "127", "255", "3.141592653589793", "32767", "9223372036854775807", "9786", "\x00", "bytes", "false", "foo", "some", "true", "☹", "☺", "👩"}
 
 }
 
-func ExampleGrammar() {
+func ExampleDefaultPack() {
 
-	LF := rat.Rule{
-		Text: "LF",
-		Check: func(r []rune, i int) rat.Result {
-			var err error
-			if r[i] != '\n' {
-				err = fmt.Errorf(`expected: LF`)
-			}
-			return rat.Result{R: r, B: i, E: i + 1, X: err}
-		},
-	}
-
-	g := rat.Pack(LF)
-
-	buf := []rune("some\nthing\n")
-	g.Check("LF", buf, 4).Print()
-	g.Check("LF", buf, 1).Print()
-	g.Check("LF", buf, 10).Print()
+	rat.Pack(`foo`, 42).Print()
+	rat.DefaultPackType = rat.OnePackType
+	rat.Pack(`foo`, 42).Print()
 
 	// Output:
-	// {"B":4,"E":5}
-	// {"B":1,"E":2,"X":"expected: LF"}
-	// {"B":10,"E":11}
-
-}
-
-/*
-func ExampleGrammar_Lit() {
-
-	g := new(rat.Grammar)
-	g.RuleLiteral(`foo`)
-
-	buf := []rune("barfoobazfo")
-	g.Check(`'foo'`, buf, 3).Print()
-	g.Check(`'foo'`, buf, 0).Print()
-	g.Check(`'foo'`, buf, 9).Print()
-
-	// Output:
-	// {"B":3,"E":6}
-	// {"B":0,"E":0,"X":"expected: 'f'"}
-	// {"B":9,"E":11,"X":"expected: 'o'"}
-
-}
-
-func ExampleGrammar_Seq() {
-
-	g := new(rat.Grammar)
-	foo := g.RuleLiteral(`foo`)
-	baz := g.RuleLiteral(`baz`)
-	g.RuleSequence(foo, baz)
-
-	buf := []rune("barfoobazfoobut")
-
-	g.Check(`('foo' 'baz')`, buf, 3).Print()
-	g.Check(`('foo' 'baz')`, buf, 0).Print()
-	g.Check(`('foo' 'baz')`, buf, 9).Print()
-
-	// Output:
-	// {"B":3,"E":9}
-	// {"B":0,"E":0,"X":"expected: 'f'"}
-	// {"B":9,"E":13,"X":"expected: 'a'"}
-
-}
-
-func ExampleGrammar_RuleOneOf() {
-
-	g := new(rat.Grammar)
-	foo := g.RuleLiteral(`foo`)
-	bar := g.RuleLiteral(`bar`)
-	baz := g.RuleLiteral(`baz`)
-	one_foobarbaz := g.RuleOneOf(foo, bar, baz)
-
-	str := `foobarbaz`
-	one_foobarbaz.Check([]rune(str), 0).Print()
-	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 3).Print()
-	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 2).Print()
-
-	// Output:
-	// {"B":0,"E":3}
-	// {"B":3,"E":6}
-	// {"B":2,"E":2,"X":"expected: ('foo' / 'bar' / 'baz')"}
-
-}
-
-func ExamplePack_One() {
-
-	g := rat.Pack(rat.One{`foo`, `bar`, `baz`})
-
-	title := pegn.Compile(`'# ' print{0,70}`)
-
-	title := r.Seq{ `# `, r.Max{70, r.Print} }
-
-	endblock := r.Seq{"\n","\n"}
-
-	g := rat.Pack(title)
-
-	str := `foobarbaz`
-	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 3).Print()
-	g.CheckString(`('foo' / 'bar' / 'baz')`, str, 2).Print()
-
-	// Output:
-	// {"B":0,"E":3}
-	// {"B":3,"E":6}
-	// {"B":2,"E":2,"X":"expected: ('foo' / 'bar' / 'baz')"}
-
+	// rat.Seq{"foo", "42"}
+	// rat.One{"foo", "42"}
 }
 
 /*
 
-func ExampleToPEGN() {
 
-	fmt.Printf("%q\n", rat.ToPEGN("some\tthing\nuh\rwhat\r\nsmile😈"))
-	fmt.Printf("%q\n", rat.ToPEGN("some"))
+func ExampleGrammar_Import() {
+
+	g1 := rat.Pack(`foo`)
+	g2 := rat.Pack(`bar`)
+	g1.Import(g2)
+	g1.Print()
 
 	// Output:
-	// "('some' TAB 'thing' LF 'uh' CR 'what' CR LF 'smile' x1f608)"
-	// "'some'"
+	// rat.One{"bar", "foo"}
 
+}
+
+func ExampleGrammar_Pack() {
+
+	g := rat.Pack(`foo`)
+	g.Pack(`bar`)
+	g.Print()
+
+	// Output:
+	// rat.One{"bar", "foo"}
+
+}
+
+func ExampleGrammar_Check_default_One() {
+
+	g := rat.Pack(`foo`, `bar`)
+	g.Check(`this is foobar`).Print()
+
+	// Output:
+	// out
 }
 */
