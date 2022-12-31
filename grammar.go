@@ -2,124 +2,182 @@ package rat
 
 import (
 	"fmt"
+	"log"
 	"strconv"
-	"sync"
+
+	"github.com/rwxrob/rat/x"
 )
 
+// additive only
 type Grammar struct {
-	sync.Map
-	ResultNames    []string
-	ResultNamesMap map[string]int
-
-	anoncount int
-	main      Rule
+	names   []string
+	rules   map[string]*Rule
+	rule    *Rule
+	rulenum int
 }
 
-func NewGrammar() *Grammar {
-	g := new(Grammar)
-	g.ResultNames = []string{}
-	g.ResultNamesMap = map[string]int{}
+// SetCheckRule sets the primary entry rule used when g.Check is called.
+func (g *Grammar) SetCheckRule(rule *Rule) *Grammar {
+	g.rule = rule
 	return g
 }
 
-func (g Grammar) IsZero() bool { return g.main == nil }
-
-func (g Grammar) String() string {
-	if g.main == nil {
-		return `<empty>`
+func (g *Grammar) Check(in any) Result {
+	if g.rule == nil {
+		return Result{X: ErrIsZero{g.rule}}
 	}
-	return g.main.String()
-}
-
-func (g Grammar) Print() { fmt.Println(g) }
-
-func (g *Grammar) Cache(r Rule) {
-	key := r.String()
-	if _, cached := g.Load(key); cached {
-		return
+	var runes []rune
+	switch v := in.(type) {
+	case string:
+		runes = []rune(v)
+	case []byte:
+		runes = []rune(string(v))
+	case []rune:
+		runes = v
 	}
-	g.Store(key, r)
-	return
+	return g.rule.Check(runes, 0)
 }
 
-func (g *Grammar) Import(in *Grammar) {
-	in.Range(func(k any, v any) bool {
-		txt, isstring := k.(string)
-		fn, isrule := v.(Rule)
-		if isstring && isrule {
-			g.Store(txt, fn)
-		}
-		return true
-	})
+// Pack is shorthand for g.SetCheckRule(g.MakeRule(x.Seq{[]seq})).
+func (g *Grammar) Pack(seq ...any) *Grammar {
+	return g.SetCheckRule(g.MakeRule(x.Seq(seq)))
 }
 
-func (g *Grammar) Pack(in ...any) {
-	gg := Pack(in...)
-	g.Import(gg)
-}
-
-func (g Grammar) Check(in any) Result {
-	//TODO check against main
-	return Result{}
-}
-
-func (g Grammar) Add(in any) Rule {
-	var rule Rule
-
+// MakeRule fulfills the MakeRule interface by returning the same Rule
+// created from a rat/x.Seq{in}.
+func (g *Grammar) MakeRule(in any) *Rule {
 	switch v := in.(type) {
 
 	case string:
-		rule = Lit{v}
+		return g.makeLit(v)
 	case []rune:
-		rule = Lit{string(v)}
+		return g.makeLit(string(v))
 	case []byte:
-		rule = Lit{string(v)}
+		return g.makeLit(string(v))
+	case rune:
+		return g.makeLit(string(v))
 
-	case Rule:
-		rule = v
+	case x.Seq:
+		return g.makeSeq(v)
 
-	case func(r []rune, i int) Result:
-		g.anoncount++
-		txt := `Rule` + strconv.Itoa(g.anoncount)
-		rule = arule{txt, v}
-	case CheckFunc:
-		g.anoncount++
-		txt := `Rule` + strconv.Itoa(g.anoncount)
-		rule = arule{txt, v}
+	case x.Any:
+		return g.makeAny(v)
 
-	case rune: // int32 alias
-		rule = Lit{string(v)}
-
-	case int:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case int8:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case int16:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case int64:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-
-	case uint:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case uint8:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case uint16:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case uint32:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case uint64:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-
-	case float32:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-	case float64:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
-
-	case bool:
-		rule = Lit{fmt.Sprintf(`%v`, v)}
 	}
 
-	g.Cache(rule)
-	return rule
+	log.Printf(`unsupported type: %T`, in) // TODO better error
+	return nil
+}
 
+func (g *Grammar) newRule() *Rule {
+	rule := new(Rule)
+	g.addRule(rule)
+	return rule
+}
+
+func (g *Grammar) addRule(rule *Rule) {
+	if rule.ID == 0 {
+		g.rulenum++
+		rule.ID = g.rulenum
+	}
+	if rule.Name == "" {
+		rule.Name = DefaultRuleName + strconv.Itoa(rule.ID)
+	}
+	if g.rules == nil {
+		g.rules = map[string]*Rule{}
+	}
+	g.rules[rule.Name] = rule
+}
+
+func (g *Grammar) makeLit(in string) *Rule {
+	rule, has := g.rules[in]
+	if has {
+		return rule
+	}
+	rule = new(Rule)
+	rule.Name = in
+	rule.Text = fmt.Sprintf(`%q`, in)
+	rule.Check = func(r []rune, i int) Result {
+		var err error
+		var n int
+		e := i
+		runes := []rune(in)
+		for e < len(r) && n < len(runes) {
+			if r[e] != runes[n] {
+				err = ErrExpected{r[e]}
+				break
+			}
+			e++
+			n++
+		}
+		if n < len(runes) {
+			err = ErrExpected{string(runes[n])}
+		}
+		return Result{R: r, B: i, E: e, X: err}
+	}
+	g.addRule(rule)
+	return rule
+}
+
+func (g *Grammar) makeAny(in x.Any) *Rule {
+	rule := new(Rule)
+	if len(in) != 1 {
+		return nil
+	}
+	n, isint := in[0].(int)
+	if !isint {
+		return nil
+	}
+	rule.Name = `x.Any{` + strconv.Itoa(n) + `}`
+	rule.Text = rule.Name
+
+	// check cache
+
+	if r, has := g.rules[rule.Name]; has {
+		return r
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		start := i
+		if i+n > len(r) {
+			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+		}
+		return Result{R: r, B: start, E: i + n}
+	}
+
+	g.addRule(rule)
+	return rule
+}
+
+var DefaultRuleName = `Rule`
+
+func (g *Grammar) makeSeq(seq x.Seq) *Rule {
+	rule := g.newRule()
+
+	rules := []*Rule{}
+	for _, it := range seq {
+		rule := g.MakeRule(it)
+		if rule == nil || rule.Check == nil {
+			log.Printf(`skipping invalid Rule: %v`, rule)
+			continue
+		}
+		rules = append(rules, rule)
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		start := i
+		e := i
+		results := []Result{}
+		for _, rule := range rules {
+			result := rule.Check(r, i)
+			e = result.E
+			results = append(results, result)
+			if result.X != nil {
+				break
+			}
+		}
+		return Result{R: r, B: start, E: e, S: results}
+	}
+
+	return rule
 }

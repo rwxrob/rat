@@ -6,7 +6,7 @@ import "fmt"
 // its own []rune slice (R) (which refers to the same underlying array
 // in memory as other rules).
 //
-// T (for "type") is an integer mapped to an enumeration of string
+// N (for "name") is an integer mapped to an enumeration of string
 // names.
 //
 // B (for "beginning") is the inclusive beginning position index of the
@@ -30,7 +30,7 @@ import "fmt"
 // Only checking X can absolutely confirm a rule failure.
 type Result struct {
 	N int      // integer id in enumeration of name strings
-	R []rune   // reference data (copy of slice only)
+	R []rune   // reference data (underlying slice array shared)
 	B int      // beginning (inclusive)
 	E int      // ending (non-inclusive)
 	S []Result // sub-match children, equivalent to parens in regexp

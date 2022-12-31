@@ -1,81 +1,44 @@
 /*
-Package rat implements a PEG packrat parser that takes advantage of Go's
-unique ability to type switch to create an intermediary interpreted
-language consisting entirely of Go types (mostly structs). These types
-serve as tokens that any lexer would create when lexing a higher level
-meta language such as PEG, PEGN, or regular expressions. Passing them to
-rat.Pack compiles (memoizes into sync.Map) them into a grammar of
-parsing functions not unlike how regular expressions are compiled before
-use. The string representations of these structs (including rat.Grammar)
-consist of completely valid, compilable Go code suitable for parser code
-generation. More performant (VM) parsers can also be generated simply by
-interpreting the rat.Pack language of typed parameters.
+Package rat...
+
+
+
 */
 package rat
 
-import (
-	"fmt"
-)
+import "fmt"
 
-const (
-	SeqPackType = 1
-	OnePackType = 2
-)
+// creates and caches rules from any valid sequence value, not safe for
+// concurrency to keep performant (combine with semaphore when concurrency needed)
+func Pack(seq ...any) *Grammar { return new(Grammar).Pack(seq...) }
 
-var StringPrefix = `rat.`
-var PackType = SeqPackType
-
-func Pack(in ...any) *Grammar {
-	g := NewGrammar()
-
-	switch len(in) {
-
-	case 0:
-		return g
-
-	case 1:
-
-		switch v := in[0].(type) {
-
-		case *Grammar:
-			g.Import(v)
-
-		case Grammar:
-			g.Import(&v)
-
-		default:
-			g.main = g.Add(in)
-		}
-
-	default:
-		switch PackType {
-		case SeqPackType:
-			g.main = g.Add(Seq(in))
-		case OnePackType:
-			g.main = g.Add(One(in))
-		default:
-			panic(_ErrPackType)
-		}
-
-	}
-
-	return g
+// RuleMaker implementations must return a new Rule created from any
+// input (but usually from rat/x expressions and other Go types).
+// Implementations may choose to cache the newly created rule and simply
+// return a previously cached rule if the input arguments are identified
+// as representing an identical previous rule. This fulfills the
+// PEG packrat parsing requirement for functional memoization.
+type RuleMaker interface {
+	MakeRule(in any) *Rule
 }
 
-func Quoted(in any) string {
-	switch v := in.(type) {
-	case fmt.Stringer:
-		return v.String()
-	case string:
-		return fmt.Sprintf(`%q`, v)
-	case []byte:
-		return fmt.Sprintf(`%q`, string(v))
-	case []rune:
-		return fmt.Sprintf(`%q`, string(v))
-	case rune:
-		return fmt.Sprintf(`%q`, string(v))
-	default:
-		return fmt.Sprintf(`"%v"`, v)
-	}
-	return ""
+// Rule encapsulates a CheckFunc with a unique ID and Name without the
+// scope of a Grammar. Text must be rat/x compatible expression so that
+// it can be used directly for code generation. Rules are created
+// implementations of RuleMaker since almost every Rule encapsulates
+// a different set of arguments enclosed in its CheckFunc. Once created,
+// a Rule is immutable. Field values must not change so that they
+// correspond with the enclosed values within the CheckFunc closure and
+// so that the Name can be used to uniquely identify the Rule from among
+// others in a rat.Map.
+type Rule struct {
+	Name  string    // name corresponding to ID (sometimes dynamically assigned)
+	ID    int       // unique ID for Result one-one with Name
+	Text  string    // rat/x compatible expression (ex: x.Seq{"foo", "bar"})
+	Check CheckFunc // usually closure
 }
+
+func (r Rule) String() string { return r.Name }
+func (r Rule) Print()         { fmt.Println(r) }
+
+type CheckFunc func(r []rune, i int) Result
