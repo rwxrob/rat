@@ -29,7 +29,7 @@ import "fmt"
 // than B if a partial match was made that still resulted in an error.
 // Only checking X can absolutely confirm a rule failure.
 type Result struct {
-	N int      // integer id in enumeration of name strings
+	T int      // integer rule type corresponding to rule.ID
 	R []rune   // reference data (underlying slice array shared)
 	B int      // beginning (inclusive)
 	E int      // ending (non-inclusive)
@@ -43,8 +43,8 @@ type Result struct {
 func (m Result) MarshalJSON() ([]byte, error) {
 	s := "{"
 
-	if m.N > 0 {
-		s += fmt.Sprintf(`"N":%v,`, m.N)
+	if m.T > 0 {
+		s += fmt.Sprintf(`"T":%v,`, m.T)
 	}
 
 	s += fmt.Sprintf(`"B":%v,"E":%v`, m.B, m.E)

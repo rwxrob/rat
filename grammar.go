@@ -117,7 +117,7 @@ func (g *Grammar) makeLit(in string) *Rule {
 		if n < runeslen {
 			err = ErrExpected{string(runes[n])}
 		}
-		return Result{N: rule.ID, R: r, B: start, E: i, X: err}
+		return Result{T: rule.ID, R: r, B: start, E: i, X: err}
 	}
 
 	return rule
@@ -143,9 +143,9 @@ func (g *Grammar) makeAny(in x.Any) *Rule {
 	rule.Check = func(r []rune, i int) Result {
 		start := i
 		if i+n > len(r) {
-			return Result{N: rule.ID, R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+			return Result{T: rule.ID, R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
 		}
-		return Result{N: rule.ID, R: r, B: start, E: i + n}
+		return Result{T: rule.ID, R: r, B: start, E: i + n}
 	}
 
 	return rule
@@ -178,10 +178,10 @@ func (g *Grammar) makeSeq(seq x.Seq) *Rule {
 			i = result.E
 			results = append(results, result)
 			if result.X != nil {
-				return Result{N: rule.ID, R: r, B: start, E: i, S: results, X: result.X}
+				return Result{T: rule.ID, R: r, B: start, E: i, S: results, X: result.X}
 			}
 		}
-		return Result{N: rule.ID, R: r, B: start, E: i, S: results}
+		return Result{T: rule.ID, R: r, B: start, E: i, S: results}
 	}
 
 	return rule

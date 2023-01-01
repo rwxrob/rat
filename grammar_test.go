@@ -18,10 +18,10 @@ func ExampleMakeAny() {
 	fmt.Println(g.rules[`x.Any{3}`].Text)
 
 	//Output:
-	// {"B":0,"E":1,"X":"expected: x.Any{3}"}
-	// {"B":0,"E":3}
-	// {"B":0,"E":3}
-	// {"B":2,"E":3,"X":"expected: x.Any{3}"}
+	// {"T":1,"B":0,"E":1,"X":"expected: x.Any{3}"}
+	// {"T":1,"B":0,"E":3}
+	// {"T":1,"B":0,"E":3}
+	// {"T":1,"B":2,"E":3,"X":"expected: x.Any{3}"}
 	// x.Any{3}
 	// x.Any{3}
 
@@ -44,12 +44,12 @@ func ExampleMakeLit() {
 	fmt.Println(g.rules[`oo`].Text)
 
 	//Output:
-	// {"B":0,"E":3}
-	// {"B":0,"E":3}
-	// {"B":0,"E":2,"X":"expected: o"}
-	// {"B":0,"E":0,"X":"expected: o"}
-	// {"B":1,"E":3}
-	// {"B":2,"E":4}
+	// {"T":1,"B":0,"E":3}
+	// {"T":1,"B":0,"E":3}
+	// {"T":1,"B":0,"E":2,"X":"expected: o"}
+	// {"T":2,"B":0,"E":0,"X":"expected: o"}
+	// {"T":2,"B":1,"E":3}
+	// {"T":2,"B":2,"E":4}
 	// foo
 	// "foo"
 	// oo
