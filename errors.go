@@ -14,4 +14,10 @@ type ErrExpected struct{ V any }
 
 func (e ErrExpected) Error() string { return fmt.Sprintf(_ErrExpected, e.V) }
 
-// ---------------------------- ErrNotExist ---------------------------
+// ------------------------------ ErrArgs -----------------------------
+
+type ErrArgs struct{ any }
+
+func (e ErrArgs) Error() string {
+	return fmt.Sprintf(_ErrArgs, e.any)
+}

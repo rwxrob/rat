@@ -1,9 +1,11 @@
 package rat_test
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/rwxrob/rat"
+	"github.com/rwxrob/rat/x"
 )
 
 func ExampleRule() {
@@ -32,11 +34,16 @@ func ExampleRule() {
 
 }
 
-/*
 func ExamplePack() {
-	g := rat.Pack(`foo`, x.Any{2}, `bar`)
-	g.Check(`fooisbar`).Print()
+
+	g := rat.Pack(`foo`, x.Any{2}, `bar`, `foo`)
+
+	res := g.Check(`fooisbarfoo`)
+	res.Print()
+	fmt.Println(res.S)
+
 	// Output:
 	// {"B":0,"E":8}
+	// [{"B":0,"E":3} {"B":3,"E":5} {"B":5,"E":8}]
+
 }
-*/

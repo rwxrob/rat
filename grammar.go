@@ -94,89 +94,94 @@ func (g *Grammar) makeLit(in string) *Rule {
 	if has {
 		return rule
 	}
+
 	rule = new(Rule)
 	rule.Name = in
 	rule.Text = fmt.Sprintf(`%q`, in)
+	g.addRule(rule)
+
 	rule.Check = func(r []rune, i int) Result {
 		var err error
-		var n int
-		e := i
+		start := i
 		runes := []rune(in)
-		for e < len(r) && n < len(runes) {
-			if r[e] != runes[n] {
-				err = ErrExpected{r[e]}
+		var n int
+		runeslen := len(runes)
+		for i < len(r) && n < runeslen {
+			if r[i] != runes[n] {
+				err = ErrExpected{r[n]}
 				break
 			}
-			e++
+			i++
 			n++
 		}
-		if n < len(runes) {
+		if n < runeslen {
 			err = ErrExpected{string(runes[n])}
 		}
-		return Result{R: r, B: i, E: e, X: err}
+		return Result{N: rule.ID, R: r, B: start, E: i, X: err}
 	}
-	g.addRule(rule)
+
 	return rule
 }
 
 func (g *Grammar) makeAny(in x.Any) *Rule {
-	rule := new(Rule)
-	if len(in) != 1 {
-		return nil
-	}
+
 	n, isint := in[0].(int)
-	if !isint {
-		return nil
+	if !isint || len(in) != 1 {
+		panic(fmt.Sprintf(_ErrArgs, in))
 	}
-	rule.Name = `x.Any{` + strconv.Itoa(n) + `}`
-	rule.Text = rule.Name
 
-	// check cache
-
-	if r, has := g.rules[rule.Name]; has {
+	name := `x.Any{` + strconv.Itoa(n) + `}`
+	if r, have := g.rules[name]; have {
 		return r
 	}
+
+	rule := new(Rule)
+	rule.Name = name
+	rule.Text = name
+	g.addRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		start := i
 		if i+n > len(r) {
-			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+			return Result{N: rule.ID, R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
 		}
-		return Result{R: r, B: start, E: i + n}
+		return Result{N: rule.ID, R: r, B: start, E: i + n}
 	}
 
-	g.addRule(rule)
 	return rule
 }
 
 var DefaultRuleName = `Rule`
 
 func (g *Grammar) makeSeq(seq x.Seq) *Rule {
+
 	rule := g.newRule()
 
 	rules := []*Rule{}
 	for _, it := range seq {
+
 		rule := g.MakeRule(it)
+
 		if rule == nil || rule.Check == nil {
 			log.Printf(`skipping invalid Rule: %v`, rule)
 			continue
 		}
+
 		rules = append(rules, rule)
 	}
 
 	rule.Check = func(r []rune, i int) Result {
 		start := i
-		e := i
 		results := []Result{}
 		for _, rule := range rules {
 			result := rule.Check(r, i)
-			e = result.E
+			i = result.E
 			results = append(results, result)
 			if result.X != nil {
-				break
+				return Result{N: rule.ID, R: r, B: start, E: i, S: results, X: result.X}
 			}
 		}
-		return Result{R: r, B: start, E: e, S: results}
+		return Result{N: rule.ID, R: r, B: start, E: i, S: results}
 	}
 
 	return rule
