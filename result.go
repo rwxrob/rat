@@ -1,13 +1,16 @@
 package rat
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Result contains the result of an evaluated Rule function along with
 // its own []rune slice (R) (which refers to the same underlying array
 // in memory as other rules).
 //
-// N (for "name") is an integer mapped to an enumeration of string
-// names.
+// T (for "type") is an integer mapped to the rule that was used to
+// produce this result, usually associated with a longer string name.
 //
 // B (for "beginning") is the inclusive beginning position index of the
 // first rune in Buf that matches.
@@ -17,9 +20,8 @@ import "fmt"
 // farthest possible point even if the rule fails (and an Err set). This
 // allows recovery attempts from that position.
 //
-// S (for "sub-match") contains sub-matches equivalent to parenthesized
-// patterns of a regular expression, the successful child matches under
-// this match.
+// C (for "children") contains results within this result, sub-matches,
+// equivalent to parenthesized patterns of a regular expression.
 //
 // X contains any error encountered while parsing.
 //
@@ -30,17 +32,24 @@ import "fmt"
 // Only checking X can absolutely confirm a rule failure.
 type Result struct {
 	T int      // integer rule type corresponding to rule.ID
-	R []rune   // reference data (underlying slice array shared)
 	B int      // beginning (inclusive)
 	E int      // ending (non-inclusive)
-	S []Result // sub-match children, equivalent to parens in regexp
 	X error    // error, eXpected something else
+	C []Result // children, results within this result
+	R []rune   // reference data (underlying slice array shared)
 }
 
-// MarshalJSON fulfills the encoding.JSONMarshaler interface by
-// translating Beg to B, End to E, Sub to S, and Err to X as a string.
-// Buf is never included. An error is never returned.
+// MarshalJSON fulfills the encoding.JSONMarshaler interface. The begin
+// (B), end (E) are always included. The type (T), buffer (R), error (X)
+// and child sub-matches (C) are only included if not empty. Child
+// sub-matches omit the buffer (R). The order of fields is guaranteed
+// not to change.  Output is always a single line. There is no
+// dependency on the reflect package. The buffer (R) is rendered as
+// a quoted string (%q) with no further escaping (unlike built-in Go
+// JSON marshaling which escapes things unnecessarily producing
+// unreadable output). An error is never returned.
 func (m Result) MarshalJSON() ([]byte, error) {
+
 	s := "{"
 
 	if m.T > 0 {
@@ -53,13 +62,26 @@ func (m Result) MarshalJSON() ([]byte, error) {
 		s += fmt.Sprintf(`,"X":%q`, m.X)
 	}
 
+	if len(m.C) > 0 {
+		results := []string{}
+		for _, c := range m.C {
+			results = append(results, Result{c.T, c.B, c.E, c.X, c.C, nil}.String())
+		}
+		s += `,"C":[` + strings.Join(results, ",") + `]`
+	}
+
+	if m.R != nil {
+		s += fmt.Sprintf(`,"R":%q`, string(m.R))
+	}
+
 	s += "}"
 
 	return []byte(s), nil
 }
 
-// String fulfills the fmt.Stringer interface as JSON with "null" for
-// any errors.
+// String fulfills the fmt.Stringer interface as JSON by calling
+// MarshalJSON. If JSON marshaling fails for any reason a "null" string
+// is returned.
 func (m Result) String() string {
 	buf, err := m.MarshalJSON()
 	if err != nil {

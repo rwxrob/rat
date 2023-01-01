@@ -16,6 +16,22 @@ type Grammar struct {
 	rulenum int
 }
 
+// TODO MarshalJSON - just the meta stuff to help others implement compatible
+// TODO UnmarshalJSON - just the meta stuff with Checks unassigned unset
+
+func (g Grammar) String() string {
+	var str string
+	log.Print(g.rule)
+
+	if g.rule != nil {
+		str += g.rule.Text
+	}
+
+	return str
+}
+
+func (g Grammar) Print() { fmt.Println(g) }
+
 // SetCheckRule sets the primary entry rule used when g.Check is called.
 func (g *Grammar) SetCheckRule(rule *Rule) *Grammar {
 	g.rule = rule
@@ -40,7 +56,11 @@ func (g *Grammar) Check(in any) Result {
 
 // Pack is shorthand for g.SetCheckRule(g.MakeRule(x.Seq{[]seq})).
 func (g *Grammar) Pack(seq ...any) *Grammar {
-	return g.SetCheckRule(g.MakeRule(x.Seq(seq)))
+	xseq := x.Seq(seq)
+	//log.Print(xseq)
+	rule := g.MakeRule(xseq)
+	//log.Print(rule)
+	return g.SetCheckRule(rule)
 }
 
 // MakeRule fulfills the MakeRule interface by returning the same Rule
@@ -178,10 +198,10 @@ func (g *Grammar) makeSeq(seq x.Seq) *Rule {
 			i = result.E
 			results = append(results, result)
 			if result.X != nil {
-				return Result{T: rule.ID, R: r, B: start, E: i, S: results, X: result.X}
+				return Result{T: rule.ID, R: r, B: start, E: i, C: results, X: result.X}
 			}
 		}
-		return Result{T: rule.ID, R: r, B: start, E: i, S: results}
+		return Result{T: rule.ID, R: r, B: start, E: i, C: results}
 	}
 
 	return rule

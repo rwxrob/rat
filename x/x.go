@@ -3,7 +3,7 @@ Package x (as in "expressions") contains most of the rat.Pack-able
 types. These type definitions allow PEG grammars to be defined entirely
 in compilable Go code and easily rendered to any other grammar
 meta-language (such as PEGN). Typed []any slices are used by convention
-to keep the syntax consistent. These can thought of as the tokens that
+to keep the syntax consistent. These can be thought of as the tokens that
 would be created after having tokenizing a higher-level grammar. All
 types implement the fmt.Stringer interface producing valid Go code that
 can be used when creating generators. These cover most regular
@@ -11,29 +11,36 @@ expression engines as well. It is common and expected for developers to
 create collections of rules (into grammars) that are comprised of these
 basic expression components.
 
-    N   - Foo <- rule or <:Foo rule >
-    Is  - any PEGN or Unicode or POSIX class
-    Seq - (rule1 rule2)
-    One - (rule1 / rule2)
-    Opt - rule?
-		Lit - ('foo' SP x20 u2563 CR LF)
-    Mn1 - rule+
-    Mn0 - rule*
-    Min - rule{n,}
-    Max - rule{0,n}
-    Mmx - rule{m,n}
-    Pos - &rule
-    Neg - !rule
-    Any - .{n}
-    Toi - ..rule
-    Tox - ...rule
-		Rng - [a-f] / [x43-x54] / [u3243-u4545]
-    End - !.
+    Rule - Foo <- rule or <:Foo rule >
+    Is   - any PEGN or Unicode or POSIX class
+    Seq  - (rule1 rule2)
+    One  - (rule1 / rule2)
+    Opt  - rule?
+		Lit  - ('foo' SP x20 u2563 CR LF)
+    Mn1  - rule+
+    Mn0  - rule*
+    Min  - rule{n,}
+    Max  - rule{0,n}
+    Mmx  - rule{m,n}
+    Pos  - &rule
+    Neg  - !rule
+    Any  - .{n}
+    Toi  - ..rule
+    Tox  - ...rule
+		Rng  - [a-f] / [x43-x54] / [u3243-u4545]
+    End  - !.
 
-Note that rat.Pack automatically converts any unrecognized expression
-argument into a literal (Lit) expression based on its fmt.Sprintf
-representation. Also note that these assume that the data being checked
-consists entirely of UTF-8 unicode code points ([]rune slice).
+Most rules should be encapsulated by the Rule type to give the rule
+a name and corresponding integer identifier (for use in results). A rule
+that is not encapsulated by the Rule type is referred to as an
+"anonymous rule" when describing it. Anonymous rules are assigned
+a unique name and ID when packed so that they may safely be used for
+code generation and other purposes requiring a name.
+
+Note that rat.Pack automatically converts any unrecognized type argument
+into a literal (Lit) based on its fmt.Sprintf representation. Also note
+that these assume that the data being checked consists entirely of UTF-8
+unicode code points ([]rune slice).
 
 */
 package x

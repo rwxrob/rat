@@ -38,7 +38,7 @@ type Rule struct {
 	Check CheckFunc // usually closure
 }
 
-func (r Rule) String() string { return r.Name }
+func (r Rule) String() string { return r.Text }
 func (r Rule) Print()         { fmt.Println(r) }
 
 type CheckFunc func(r []rune, i int) Result
