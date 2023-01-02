@@ -19,12 +19,13 @@ func ExampleSeq() {
 
 func ExampleSeq_from_Slice() {
 
-	vals := []string{`foo`, `bar`}
+	vals := []any{`foo`, `bar`}
 	seq := x.Seq{vals}
 	fmt.Println(seq)
-	//	seq.Print()
+	seq.Print()
 
 	// Output:
+	// x.Seq{"foo", "bar"}
 	// x.Seq{"foo", "bar"}
 
 }
