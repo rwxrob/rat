@@ -29,3 +29,15 @@ func ExampleSeq_from_Slice() {
 	// x.Seq{"foo", "bar"}
 
 }
+
+func ExampleRule() {
+
+	x.Rule{`foo`}.Print()
+	x.Rule{`foo`, `Foo`}.Print()
+	x.Rule{`foo`, `Foo`, 1}.Print()
+
+	// Output:
+	// "foo"
+	// x.Rule{"foo", "Foo"}
+	// x.Rule{"foo", "Foo", 1}
+}

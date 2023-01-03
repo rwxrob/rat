@@ -39,7 +39,10 @@ consists entirely of UTF-8 unicode code points ([]rune slice).
 */
 package x
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 func String(it any) string {
 	switch v := it.(type) {
@@ -53,7 +56,43 @@ func String(it any) string {
 
 // ------------------------------- Rule -------------------------------
 
-type Rule []any // Foo <- rule / <:Foo rule >
+// Rule encapsulated another rule with a name and optional integer
+// ID. The first argument must be the rule to encapsulate, the second
+// the unique string name to use, and the third, the integer ID to
+// associate with that string name and be used as the result type for
+// that rule. Rules without an ID will be assigned one automatically.
+// A Rule with only one argument is interpreted as if the encapsulated
+// rule was used directly (ignoring the x.Rule{} completely).
+//
+// PEGN
+//
+//    Foo <- rule / <:Foo rule >
+//
+type Rule []any
+
+func (it Rule) String() string {
+	switch len(it) {
+	case 0:
+		return ""
+	case 1:
+		return String(it[0])
+	case 2:
+		name, isstring := it[1].(string)
+		if !isstring {
+			return ""
+		}
+		return `x.Rule{` + String(it[0]) + `, ` + String(name) + `}`
+	default:
+		name, isstring := it[1].(string)
+		id, isint := it[2].(int)
+		if !isstring || !isint {
+			return ""
+		}
+		return `x.Rule{` + String(it[0]) + `, ` + String(name) + `, ` + strconv.Itoa(id) + `}`
+	}
+}
+
+func (it Rule) Print() { fmt.Println(it) }
 
 // -------------------------------- Ref -------------------------------
 
