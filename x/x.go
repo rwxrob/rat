@@ -12,7 +12,7 @@ create collections of rules (into grammars) that are comprised of these
 basic expression components.
 
     Rule - Foo <- rule or <:Foo rule >
-    R    - reference to Rule by name
+    Ref  - reference another rule by name
     Is   - any PEGN or Unicode or POSIX class
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
@@ -51,9 +51,17 @@ func String(it any) string {
 	return ""
 }
 
+// ------------------------------- Rule -------------------------------
+
 type Rule []any // Foo <- rule / <:Foo rule >
-type R []any    // EndOfLine <- CR? LF; Block <- rune+ EndOfLine
-type Is []any   // any PEGN or Unicode or POSIX class
+
+// -------------------------------- Ref -------------------------------
+
+type Ref []any // EndOfLine <- CR? LF; Block <- rune+ EndOfLine
+
+// -------------------------------- Is --------------------------------
+
+type Is []any // any PEGN or Unicode or POSIX class
 
 // -------------------------------- Seq -------------------------------
 
@@ -98,17 +106,58 @@ func (rules Seq) Print() { fmt.Println(rules) }
 
 type One []any // (rule1 / rule2)
 
+// -------------------------------- Opt -------------------------------
+
 type Opt []any // rule?
+
+// -------------------------------- Lit -------------------------------
+
 type Lit []any // ('foo' SP x20 u2563 CR LF)
+
+// -------------------------------- Mn1 -------------------------------
+
 type Mn1 []any // rule+
+
+// -------------------------------- Mn0 -------------------------------
+
 type Mn0 []any // rule*
+
+// -------------------------------- Min -------------------------------
+
 type Min []any // rule{n,}
+
+// -------------------------------- Max -------------------------------
+
 type Max []any // rule{0,n}
+
+// -------------------------------- Mmx -------------------------------
+
 type Mmx []any // rule{m,n}
+
+// -------------------------------- Pos -------------------------------
+
 type Pos []any // &rule
+
+// -------------------------------- Neg -------------------------------
+
 type Neg []any // !rule
+
+// -------------------------------- Any -------------------------------
+
 type Any []any // rune{n}
+
+// -------------------------------- Toi -------------------------------
+
 type Toi []any // ..rule
+
+// -------------------------------- Tox -------------------------------
+
 type Tox []any // ...rule
+
+// -------------------------------- Rng -------------------------------
+
 type Rng []any // [a-f] / [x43-x54] / [u3243-u4545]
+
+// -------------------------------- End -------------------------------
+
 type End []any // !.
