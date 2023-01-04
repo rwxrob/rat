@@ -35,9 +35,16 @@ func ExampleRule() {
 	x.Rule{`foo`}.Print()
 	x.Rule{`foo`, `Foo`}.Print()
 	x.Rule{`foo`, `Foo`, 1}.Print()
+	x.Rule{[]any{`foo`, `bar`}, `Foo`, 1}.Print()
+	x.Rule{[]string{`foo`, `bar`}, `Foo`, 1}.Print()
+	x.Rule{x.Seq{`foo`, `bar`}, `Foo`, 1}.Print()
 
 	// Output:
 	// "foo"
 	// x.Rule{"foo", "Foo"}
 	// x.Rule{"foo", "Foo", 1}
+	// x.Rule{x.Seq{"foo", "bar"}, "Foo", 1}
+	// x.Rule{x.Seq{"foo", "bar"}, "Foo", 1}
+	// x.Rule{x.Seq{"foo", "bar"}, "Foo", 1}
+
 }

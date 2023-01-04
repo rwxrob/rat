@@ -36,6 +36,10 @@ argument into a literal (Lit) expression based on its fmt.Sprintf
 representation. Also note that these assume that the data being checked
 consists entirely of UTF-8 unicode code points ([]rune slice).
 
+A Note About Panics
+
+Since the types in this package constitute an interpreted language it was decided to use panics rather than return errors since panics are more inline with the type of errors that would occur if the Go code itself were incorrect.
+
 */
 package x
 
@@ -46,12 +50,46 @@ import (
 
 func String(it any) string {
 	switch v := it.(type) {
+
 	case fmt.Stringer:
 		return v.String()
+
+	case []any:
+		switch len(v) {
+		case 0:
+			return _SyntaxError
+		case 1:
+			return String(v[0])
+		default:
+			str := `x.Seq{` + String(v[0])
+			for _, it := range v[1:] {
+				str += `, ` + String(it)
+			}
+			return str + `}`
+		}
+
+	case []string:
+		str := `x.Seq{` + String(v[0])
+		for _, it := range v[1:] {
+			str += `, ` + String(it)
+		}
+		return str + `}`
+
+	case string:
+		return fmt.Sprintf(`%q`, v)
+
+	case []rune:
+		return fmt.Sprintf(`%q`, string(v))
+
+	case []byte:
+		return fmt.Sprintf(`%q`, string(v))
+
+		// TODO add all other supported types
+
 	default:
-		return fmt.Sprintf("%q", v)
+		return _SyntaxError
+
 	}
-	return ""
 }
 
 // ------------------------------- Rule -------------------------------
@@ -72,17 +110,21 @@ type Rule []any
 
 func (it Rule) String() string {
 	switch len(it) {
-	case 0:
-		return ""
-	case 1:
-		return String(it[0])
-	case 2:
+
+	case 2: // rule, name
 		name, isstring := it[1].(string)
 		if !isstring {
-			return ""
+			panic(_UsageRule)
 		}
 		return `x.Rule{` + String(it[0]) + `, ` + String(name) + `}`
-	default:
+
+	case 1: // rule (uncommon, but acceptable)
+		return String(it[0])
+
+	case 0:
+		panic(_UsageRule)
+
+	default: // rule, name, id
 		name, isstring := it[1].(string)
 		id, isint := it[2].(int)
 		if !isstring || !isint {
@@ -97,6 +139,21 @@ func (it Rule) Print() { fmt.Println(it) }
 // -------------------------------- Ref -------------------------------
 
 type Ref []any // EndOfLine <- CR? LF; Block <- rune+ EndOfLine
+
+func (args Ref) String() string {
+	switch len(args) {
+	case 1:
+		name, isstring := args[0].(string)
+		if !isstring {
+			return _UsageRef
+		}
+		return `x.Ref{"` + name + `"}`
+	default:
+		return _UsageRef
+	}
+}
+
+func (it Ref) Print() { fmt.Println(it) }
 
 // -------------------------------- Is --------------------------------
 
@@ -116,7 +173,7 @@ func (rules Seq) String() string {
 	case 1:
 		it, isslice := rules[0].([]any)
 		if !isslice {
-			return ""
+			return String(it)
 		}
 		switch len(it) {
 		case 0:
@@ -153,6 +210,19 @@ type Opt []any // rule?
 
 type Lit []any // ('foo' SP x20 u2563 CR LF)
 
+func (s Lit) String() string {
+	if len(s) == 0 {
+		return ""
+	}
+	it, isstring := s[0].(string)
+	if !isstring {
+		return _UsageLit
+	}
+	return fmt.Sprintf(`%q`, it)
+}
+
+func (s Lit) Print() { fmt.Println(s) }
+
 // -------------------------------- Mn1 -------------------------------
 
 type Mn1 []any // rule+
@@ -184,6 +254,21 @@ type Neg []any // !rule
 // -------------------------------- Any -------------------------------
 
 type Any []any // rune{n}
+
+func (args Any) String() string {
+	switch len(args) {
+	case 1:
+		n, isint := args[0].(int)
+		if !isint {
+			return _UsageAny
+		}
+		return `x.Any{` + strconv.Itoa(n) + `}`
+	default:
+		return _UsageAny
+	}
+}
+
+func (a Any) Print() { fmt.Println(a) }
 
 // -------------------------------- Toi -------------------------------
 

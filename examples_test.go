@@ -37,12 +37,23 @@ func ExampleRule() {
 func ExamplePack() {
 
 	g := rat.Pack(`foo`, x.Any{2}, `bar`, `foo`)
-	//	TODO g.Print()
+	g.Print()
+	//res := g.Check(`fooisbarfoo`)
+	//res.Print()
 
+	// Output:
+	// x.Seq{x.Rule{"Foo", "foo"}, x.Any{2}, "bar", x.Ref{"Foo"}}
+	// {"T":1,"B":0,"E":11,"C":[{"T":2,"B":0,"E":3},{"T":3,"B":3,"E":5},{"T":4,"B":5,"E":8},{"T":2,"B":8,"E":11}],"R":"fooisbarfoo"}
+
+}
+
+func ExamplePack_ref() {
+
+	g := rat.Pack(x.Rule{`Foo`, `foo`}, x.Any{2}, `bar`, x.Ref{`Foo`})
+	g.Print()
 	res := g.Check(`fooisbarfoo`)
 	res.Print()
 
 	// Output:
-	// {"T":1,"B":0,"E":11,"C":[{"T":2,"B":0,"E":3},{"T":3,"B":3,"E":5},{"T":4,"B":5,"E":8},{"T":2,"B":8,"E":11}],"R":"fooisbarfoo"}
-
+	// some
 }

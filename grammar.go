@@ -21,12 +21,9 @@ type Grammar struct {
 
 func (g Grammar) String() string {
 	var str string
-	log.Print(g.rule)
-
 	if g.rule != nil {
 		str += g.rule.Text
 	}
-
 	return str
 }
 
@@ -57,17 +54,17 @@ func (g *Grammar) Check(in any) Result {
 // Pack is shorthand for g.SetCheckRule(g.MakeRule(x.Seq{[]seq})).
 func (g *Grammar) Pack(seq ...any) *Grammar {
 	xseq := x.Seq(seq)
-	//log.Print(xseq)
 	rule := g.MakeRule(xseq)
-	//log.Print(rule)
 	return g.SetCheckRule(rule)
 }
 
 // MakeRule fulfills the MakeRule interface by returning the same Rule
 // created from a rat/x.Seq{in}.
 func (g *Grammar) MakeRule(in any) *Rule {
+
 	switch v := in.(type) {
 
+	// text
 	case string:
 		return g.makeLit(v)
 	case []rune:
@@ -77,11 +74,20 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	case rune:
 		return g.makeLit(string(v))
 
+	// types as expressions
+	case x.Rule:
+		return g.makeRule(v)
 	case x.Seq:
 		return g.makeSeq(v)
-
 	case x.Any:
 		return g.makeAny(v)
+
+	case fmt.Stringer:
+		return g.makeLit(v.String())
+
+	// anything that has an %q form
+	default:
+		return g.makeLit(fmt.Sprintf(`%q`, v))
 
 	}
 
@@ -109,16 +115,28 @@ func (g *Grammar) addRule(rule *Rule) {
 	g.rules[rule.Name] = rule
 }
 
+func (g *Grammar) makeRule(in x.Rule) *Rule {
+	name, isstring := in[0].(string)
+	if !isstring {
+		panic(fmt.Sprintf(_ErrArgs, in))
+	}
+	rule, has := g.rules[name]
+	if has {
+		return rule
+	}
+
+	// TODO
+	return rule
+}
+
 func (g *Grammar) makeLit(in string) *Rule {
 	rule, has := g.rules[in]
 	if has {
 		return rule
 	}
-
-	rule = new(Rule)
+	rule = g.newRule()
 	rule.Name = in
 	rule.Text = fmt.Sprintf(`%q`, in)
-	g.addRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		var err error

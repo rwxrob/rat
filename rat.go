@@ -8,8 +8,24 @@ package rat
 
 import "fmt"
 
-// creates and caches rules from any valid sequence value, not safe for
-// concurrency to keep performant (combine with semaphore when concurrency needed)
+// Pack interprets a sequence of any valid Go types into a Grammar
+// suitable for checking and parsing any UTF-8 input. All arguments
+// passed are assumed to be literals of their string forms except for
+// all the types defined in the x ("expression") subpackage. These have
+// special meaning corresponding to the fundamentals expressions of an
+// PEG or regular expression. Consider these the tokens created by any
+// lexer when processing any meta-language. Any grammar or structured
+// data format that uses UTF-8 encoding can be fully expressed as
+// compilable Go code using this method of interpretation.
+//
+// Memoization
+//
+// Memoization is a fundamental requirement for any PEG packrat parser.
+// Pack automatically memoizes all expressions using closure functions
+// and map entries matching the specific arguments to a specific
+// expression. Results are always integer pointers to specific positions
+// within the data passed so there is never wasteful redundancy. This
+// maximizes performance and minimizes memory utilization.
 func Pack(seq ...any) *Grammar { return new(Grammar).Pack(seq...) }
 
 // RuleMaker implementations must return a new Rule created from any
