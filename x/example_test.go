@@ -7,14 +7,21 @@ import (
 	"github.com/rwxrob/rat/x"
 )
 
+type foo struct{}
+
+func (foo) String() string { return `foo` }
+
 func ExampleString() {
+
+	// type foo struct{}
+	// func (foo) String() string { return `foo` }
 
 	smile := int32('\u263A')
 	types := []any{
 		`string`, []byte(`bytes as string`), []rune(`runes as string`), 'x', '😀',
 		true, false, -127, -32767, -9223372036854775808, -9785, int8(127), uint8(255),
 		3.141592653589793238, int16(32767), int64(9223372036854775807), int(smile),
-		'\x00', int32(9785), smile, '👩',
+		'\x00', int32(9785), smile, '👩', foo{}, []any{1, false}, []string{`one`, `two`},
 	}
 	for _, it := range types {
 		fmt.Println(x.String(it))
@@ -42,6 +49,9 @@ func ExampleString() {
 	// "☹"
 	// "☺"
 	// "👩"
+	// foo
+	// x.Seq{"1", "false"}
+	// x.Seq{"one", "two"}
 
 }
 
@@ -64,11 +74,13 @@ func ExampleRule() {
 	x.Rule{`FooName`, -1, `foo`}.Print()
 	x.Rule{`FooName`, 0, `foo`, `toomuch`}.Print()
 	x.Rule{`FooName`, `notint`, `foo`}.Print()
+	x.Rule{false, `notint`, `foo`}.Print()
 
 	// Output:
 	// x.Rule{"FooName", 2, "foo"}
 	// x.Rule{"FooName", 0, "foo"}
 	// x.Rule{"FooName", -1, "foo"}
+	// "%!USAGE: x.Rule{name, intid, rule}"
 	// "%!USAGE: x.Rule{name, intid, rule}"
 	// "%!USAGE: x.Rule{name, intid, rule}"
 
@@ -84,8 +96,11 @@ func ExampleRef() {
 	ref[0] = true
 	ref.Print()
 
+	x.Ref{}.Print()
+
 	// Output:
 	// x.Ref{"foo"}
+	// "%!USAGE: x.Ref{name}"
 	// "%!USAGE: x.Ref{name}"
 
 }
@@ -103,18 +118,26 @@ func ExampleIs() {
 	myIsPrint := myIsPrint     // full wraps in own function to retain name
 
 	x.Is{foo}.Print()
+	x.Is{x.IsFunc(foo)}.Print()
 	x.Is{another}.Print()
 	x.Is{myIsPrint}.Print()
+	x.Is{false}.Print()
 
 	// anonymous functions not allowed for classes
 	x.Is{func(r rune) bool { return true }}.Print()
 	anon := func(r rune) bool { return true }
 	x.Is{anon}.Print()
+	x.Is{}.Print()
+	x.Is{anon, false}.Print()
 
 	// Output:
 	// x.Is{aclass}
+	// x.Is{aclass}
 	// x.Is{IsPrint}
 	// x.Is{myIsPrint}
+	// "%!USAGE: x.Is{namedfunc}"
+	// "%!USAGE: x.Is{namedfunc}"
+	// "%!USAGE: x.Is{namedfunc}"
 	// "%!USAGE: x.Is{namedfunc}"
 	// "%!USAGE: x.Is{namedfunc}"
 
@@ -126,13 +149,17 @@ func ExampleSeq() {
 
 	x.Seq{`foo`, false, `bar`}.Print()
 	x.Seq{[]any{`foo`, `bar`}}.Print()
+	x.Seq{[]any{`foo`}}.Print()
 	x.Seq{`foo`}.Print()
 	x.Seq{}.Print()
+	x.Seq{[]any{}}.Print()
 
 	// Output:
 	// x.Seq{"foo", "false", "bar"}
 	// x.Seq{"foo", "bar"}
 	// "foo"
+	// "foo"
+	// "%!USAGE: x.Seq{...rule}"
 	// "%!USAGE: x.Seq{...rule}"
 
 }
@@ -195,9 +222,15 @@ func ExampleLit_any_Slice() {
 		'\x00', int32(9785), smile, '👩',
 	}
 	x.Lit{types}.Print()
+	x.Lit{}.Print()
+	x.Lit{false}.Print()
+	x.Lit{[]any{}}.Print()
 
 	// Output:
 	// "stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"
+	// "%!USAGE: x.Lit{...any}"
+	// "false"
+	// "%!USAGE: x.Lit{...any}"
 
 }
 
@@ -395,3 +428,14 @@ func ExampleRng() {
 }
 
 // -------------------------------- End -------------------------------
+
+func ExampleEnd() {
+
+	x.End{}.Print()
+	x.End{`nope`}.Print()
+
+	// Output:
+	// x.End{}
+	// "%!USAGE: x.End{}"
+
+}

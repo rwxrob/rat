@@ -1,20 +1,23 @@
 /*
-Package x (as in "expressions") contains most of the rat.Pack-able
-types. These type definitions allow PEG grammars to be defined entirely
-in compilable Go code and easily rendered to any other grammar
-meta-language (such as PEGN). Typed []any slices are used by convention
-to keep the syntax consistent. These can thought of as the tokens that
-would be created after having tokenizing a higher-level grammar. All
-types implement the fmt.Stringer interface producing valid Go code that
-can be used when creating generators. Each type also implements a Print()
-method that is shorthand for fmt.Println(self). These cover most regular
-expression engines as well. It is common and expected for developers to
-create collections of rules (into grammars) that are comprised of these
-basic expression components.
+Package x (as in "expressions") contains the rat/x grammar in the form
+of Go []any types.  These type definitions allow any grammar that can be
+expresses in PEG (or PEGN) to be implemented entirely in highly
+performant, compilable Go code and easily rendered to any other
+language. This makes rat/x highly useful for generating PEG parsing code
+in any programming language, or as a replacement for regular expressions
+(which lack lookarounds and other PEG-capable constructs).
+
+Typed []any slices are used by convention to keep the syntax consistent.
+These can be thought of as the tokens that would result from tokenizing
+a higher-level grammar. All types implement the fmt.Stringer interface
+producing valid Go code that can be used when creating generators. When
+types are used incorrectly the string representation contains the
+%!ERROR or %!USAGE prefix. Each type also implements a Print() method
+that is shorthand for fmt.Println(self).
 
     Rule - Foo <- rule or <:Foo rule >
     Ref  - reference another rule by name
-    Is   - any PEGN or Unicode or POSIX class function
+    Is   - boolean class function
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
     Opt  - rule?
@@ -33,20 +36,7 @@ basic expression components.
     Rng  - [a-f] / [x43-x54] / [u3243-u4545]
     End  - !.
 
-Note that rat.Pack automatically converts any unrecognized expression
-argument into a literal (Lit) expression based on its fmt.Sprintf
-representation. Also note that these assume that the data being checked
-consists entirely of UTF-8 unicode code points ([]rune slice).
-
-Usage and Syntax Errors
-
-This package implements an interpreted language entirely as Go types of
-[]any. As such usage and syntax errors need to be communicated
-consistently. The fmt.Sprintf convention of prefixing strings with %!
-has therefore been adopted. All types implement the fmt.Stringer
-interface with a method that returns either the proper, compilable Go
-code of that instance, or a string prefixed with %!. Only errors will
-every begin with this prefix.
+See the documentation for each type for a details on syntax. Also see the included Examples.
 
 */
 package x
@@ -107,6 +97,9 @@ func String(it any) string {
 
 	case rune:
 		return fmt.Sprintf(`%q`, string(v))
+
+	case bool:
+		return fmt.Sprintf(`"%v"`, v)
 
 	default:
 		return fmt.Sprintf(`"%v"`, v)
@@ -214,7 +207,6 @@ func (it Is) String() string {
 	default:
 		return _UsageIs
 	}
-	return "IsFunc"
 }
 
 func (it Is) Print() { fmt.Println(it) }
@@ -320,8 +312,13 @@ func (rules Opt) Print() { fmt.Println(rules) }
 // -------------------------------- Lit -------------------------------
 
 // Lit represents any literal and allows combining literals from any
-// other type (see String). If the first and only value is an []any
-// slice assume it is to be expanded ([]any{}...).
+// other type into a single rule (see String). This is useful when
+// a number of independent strings (or other types that are represented
+// as strings) are wanted as a single new rule. Otherwise, each
+// independent string will be considered a separate rule with its own
+// result. This is akin to a dynamic join that is evaluated at the time
+// of the check assertion. If the first and only value is an []any slice
+// assume it is to be expanded ([]any{}...).
 //
 // PEGN
 //
@@ -331,12 +328,17 @@ type Lit []any
 
 func (rules Lit) String() string {
 	switch len(rules) {
+
 	case 0:
 		return _UsageLit
+
 	case 1:
 		it, isslice := rules[0].([]any)
 		if !isslice {
-			return fmt.Sprintf("%q", rules[0])
+			return String(rules[0])
+		}
+		if len(it) == 0 {
+			return _UsageLit
 		}
 		var str string
 		for _, rule := range it {
@@ -344,6 +346,7 @@ func (rules Lit) String() string {
 			str += it[1 : len(it)-1]
 		}
 		return `"` + str + `"`
+
 	default:
 		var str string
 		for _, rule := range rules {
@@ -625,6 +628,11 @@ func (it Rng) Print() { fmt.Println(it) }
 //
 type End []any
 
-func (it End) String() string { return `x.End{}` }
+func (it End) String() string {
+	if len(it) != 0 {
+		return _UsageEnd
+	}
+	return `x.End{}`
+}
 
 func (it End) Print() { fmt.Println(it) }
