@@ -24,6 +24,7 @@ basic expression components.
     Min  - rule{n,}
     Max  - rule{0,n}
     Mmx  - rule{m,n}
+    Rep  - rule{n}
     Pos  - &rule
     Neg  - !rule
     Any  - .{n}
@@ -54,7 +55,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 )
 
@@ -68,13 +68,14 @@ import (
 // %! prefix indicating an error of some kind (similar to the fmt
 // package).
 func String(it any) string {
-	// TODO
+
 	switch v := it.(type) {
 
 	case fmt.Stringer:
 		return v.String()
 
 	case []any:
+
 		switch len(v) {
 		case 0:
 			return _SyntaxError
@@ -109,21 +110,18 @@ func String(it any) string {
 
 	default:
 		return fmt.Sprintf(`"%v"`, v)
-		//	return _SyntaxError
 
 	}
 }
 
 // ------------------------------- Rule -------------------------------
 
-// Rule encapsulated another rule with a name and optional integer ID.
-// The first argument must be the rule to encapsulate (a valid rat/x
-// expression type), the second the unique string name to use, and the
-// third, the integer ID to associate with that string name and be used
-// as the result type for that rule. Rules without an ID will be
-// assigned one automatically.  A Rule with only one argument is
-// interpreted as if the encapsulated rule was used directly (unwrapping
-// it effectively from the x.Rule{}).
+// Rule encapsulates another rule with a name and optional integer ID.
+// Names can be any valid Go string. The first argument must be the
+// unique name of the rule to encapsulate, the second argument must be
+// an integer ID. If the ID is 0 (Unknown) an integer will be assigned
+// automatically. Negative integer IDs are allowed. The third argument
+// is the rule to encapsulate.
 //
 // PEGN
 //
@@ -132,33 +130,16 @@ func String(it any) string {
 type Rule []any
 
 func (it Rule) String() string {
-	switch len(it) {
-
-	case 2: // rule, name
-		name, isstring := it[1].(string)
-		if !isstring {
-			return _UsageRule
-		}
-		return `x.Rule{` + String(it[0]) + `, ` + String(name) + `}`
-
-	case 1: // rule (uncommon, but acceptable)
-		return String(it[0])
-
-	case 0:
+	if len(it) != 3 {
 		return _UsageRule
-
-	case 3: // rule, name, id
-		name, isstring := it[1].(string)
-		id, isint := it[2].(int)
-		if !isstring || !isint {
-			return ""
-		}
-		return `x.Rule{` + String(it[0]) + `, ` + String(name) + `, ` + strconv.Itoa(id) + `}`
-
-	default:
-		return _UsageRule
-
 	}
+	if _, is := it[0].(string); !is {
+		return _UsageRule
+	}
+	if _, is := it[1].(int); !is {
+		return _UsageRule
+	}
+	return fmt.Sprintf(`x.Rule{%q, %v, %v}`, it[0], it[1], String(it[2]))
 }
 
 func (it Rule) Print() { fmt.Println(it) }
@@ -240,9 +221,12 @@ func (it Is) Print() { fmt.Println(it) }
 
 // -------------------------------- Seq -------------------------------
 
-// Seq represents a sequence of expressions. If more than one value
-// assume combined values are an array of []any. If only a single value,
-// assume it is a []any slice and needs to be processed.
+// Seq represents a sequence of expressions. One represents one of
+// a set of possible matching rules. If more than one value assume
+// combined values are an array of []any. If only a single value and
+// that value is an []any slice assume each value are the values of the
+// set (somewhat like []any{}...). If just a single value that is anything
+// but an [] any slice, unwrap and handle as if just a single rule.
 //
 // PEGN
 //
@@ -255,11 +239,11 @@ func (rules Seq) String() string {
 	case 1:
 		it, isslice := rules[0].([]any)
 		if !isslice {
-			return String(it)
+			return String(rules[0])
 		}
 		switch len(it) {
 		case 0:
-			return ""
+			return _UsageSeq
 		case 1:
 			return String(it[0])
 		default:
@@ -270,7 +254,7 @@ func (rules Seq) String() string {
 			return str + `}`
 		}
 	case 0:
-		return ""
+		return _UsageSeq
 	default:
 		str := `x.Seq{` + String(rules[0])
 		for _, rule := range rules[1:] {
@@ -284,88 +268,363 @@ func (rules Seq) Print() { fmt.Println(rules) }
 
 // -------------------------------- One -------------------------------
 
-type One []any // (rule1 / rule2)
+// One represents one of a set of possible matching rules. If more than
+// one value assume combined values are an array of []any. If only
+// a single value and that value is an []any slice assume each value are
+// the values of the set (somewhat like []any{}...). If just a single value
+// that is anything but an []any slice, unwrap and handle as if just a single
+// rule.
+//
+// PEGN
+//
+//     (rule1 / rule2)
+//
+type One []any
+
+func (rules One) String() string {
+	switch len(rules) {
+	case 0:
+		return _UsageOne
+	case 1:
+		return String(rules[0])
+	default:
+		str := `x.One{` + String(rules[0])
+		for _, rule := range rules[1:] {
+			str += `, ` + String(rule)
+		}
+		return str + `}`
+	}
+}
+
+func (rules One) Print() { fmt.Println(rules) }
 
 // -------------------------------- Opt -------------------------------
 
-type Opt []any // rule?
+// Opt represents a single optional rule.
+//
+// PEGN
+//
+//     rule?
+//
+type Opt []any
+
+func (it Opt) String() string {
+	if len(it) != 1 {
+		return _UsageOpt
+	}
+	return `x.Opt{` + String(it[0]) + `}`
+}
+
+func (rules Opt) Print() { fmt.Println(rules) }
 
 // -------------------------------- Lit -------------------------------
 
-type Lit []any // ('foo' SP x20 u2563 CR LF)
+// Lit represents any literal and allows combining literals from any
+// other type (see String). If the first and only value is an []any
+// slice assume it is to be expanded ([]any{}...).
+//
+// PEGN
+//
+//     ('foo' SP x20 u2563 CR LF)
+//
+type Lit []any
 
-func (s Lit) String() string {
-	if len(s) == 0 {
-		return ""
-	}
-	it, isstring := s[0].(string)
-	if !isstring {
+func (rules Lit) String() string {
+	switch len(rules) {
+	case 0:
 		return _UsageLit
+	case 1:
+		it, isslice := rules[0].([]any)
+		if !isslice {
+			return fmt.Sprintf("%q", rules[0])
+		}
+		var str string
+		for _, rule := range it {
+			it := String(rule)
+			str += it[1 : len(it)-1]
+		}
+		return `"` + str + `"`
+	default:
+		var str string
+		for _, rule := range rules {
+			it := String(rule)
+			str += it[1 : len(it)-1]
+		}
+		return `"` + str + `"`
 	}
-	return fmt.Sprintf(`%q`, it)
+
 }
 
 func (s Lit) Print() { fmt.Println(s) }
 
 // -------------------------------- Mn1 -------------------------------
 
-type Mn1 []any // rule+
+// Mn1 represents one or more of a single rule. If the first
+// and only value is an []any slice assume it is to be expanded
+// ([]any{}...).
+//
+// PEGN
+//
+//     rule+
+//
+type Mn1 []any
+
+func (it Mn1) String() string {
+	if len(it) != 1 {
+		return _UsageMn1
+	}
+	return `x.Mn1{` + String(it[0]) + `}`
+}
+
+func (it Mn1) Print() { fmt.Println(it) }
 
 // -------------------------------- Mn0 -------------------------------
 
+// Mn0 represents zero or more of a single rule.
+//
+// PEGN
+//
+//     rule*
+//
 type Mn0 []any // rule*
+
+func (it Mn0) String() string {
+	if len(it) != 1 {
+		return _UsageMn0
+	}
+	return `x.Mn0{` + String(it[0]) + `}`
+}
+
+func (it Mn0) Print() { fmt.Println(it) }
 
 // -------------------------------- Min -------------------------------
 
-type Min []any // rule{n,}
+// Min represents a minimum number (n) of a single rule.
+//
+// PEGN
+//
+//     rule{n,}
+//
+type Min []any
+
+func (it Min) String() string {
+	if len(it) != 2 {
+		return _UsageMin
+	}
+	if _, isint := it[0].(int); !isint {
+		return _UsageMin
+	}
+	return fmt.Sprintf(`x.Min{%v, %v}`, it[0], String(it[1]))
+}
+
+func (it Min) Print() { fmt.Println(it) }
 
 // -------------------------------- Max -------------------------------
 
-type Max []any // rule{0,n}
+// Max represents a maximum number (n) of a single rule. Minimum is
+// assumed to be zero.
+//
+// PEGN
+//
+//     rule{0,n}
+//
+type Max []any
+
+func (it Max) String() string {
+	if len(it) != 2 {
+		return _UsageMax
+	}
+	if _, isint := it[0].(int); !isint {
+		return _UsageMax
+	}
+	return fmt.Sprintf(`x.Max{%v, %v}`, it[0], String(it[1]))
+}
+
+func (it Max) Print() { fmt.Println(it) }
 
 // -------------------------------- Mmx -------------------------------
 
-type Mmx []any // rule{m,n}
+// Mmx represents a minimum and maximum number (n) of a single rule.
+//
+// PEGN
+//
+//     rule{m,n}
+//
+type Mmx []any
+
+func (it Mmx) String() string {
+	if len(it) != 3 {
+		return _UsageMmx
+	}
+	if _, isint := it[0].(int); !isint {
+		return _UsageMmx
+	}
+	if _, isint := it[1].(int); !isint {
+		return _UsageMmx
+	}
+	return fmt.Sprintf(`x.Mmx{%v, %v, %v}`, it[0], it[1], String(it[2]))
+}
+
+func (it Mmx) Print() { fmt.Println(it) }
+
+// -------------------------------- Rep -------------------------------
+
+// Rep represents a minimum and maximum number (n) of a single rule.
+//
+// PEGN
+//
+//     rule{n}
+//
+type Rep []any
+
+func (it Rep) String() string {
+	if len(it) != 2 {
+		return _UsageRep
+	}
+	if _, isint := it[0].(int); !isint {
+		return _UsageRep
+	}
+	return fmt.Sprintf(`x.Rep{%v, %v}`, it[0], String(it[1]))
+}
+
+func (it Rep) Print() { fmt.Println(it) }
 
 // -------------------------------- Pos -------------------------------
 
-type Pos []any // &rule
+// Pos represents a positive lookahead assertion. The end of the result
+// is always unchanged, but an error set if rule assertion fails.
+//
+// PEGN
+//
+//     &rule
+//
+type Pos []any
+
+func (it Pos) String() string {
+	if len(it) != 1 {
+		return _UsagePos
+	}
+	return fmt.Sprintf(`x.Pos{%v}`, String(it[0]))
+}
+
+func (it Pos) Print() { fmt.Println(it) }
 
 // -------------------------------- Neg -------------------------------
 
-type Neg []any // !rule
+// Neg represents a negative lookahead assertion. The end of the result
+// is always unchanged, but an error set if the rule assertion is true.
+//
+// PEGN
+//
+//     !rule
+//
+type Neg []any
+
+func (it Neg) String() string {
+	if len(it) != 1 {
+		return _UsageNeg
+	}
+	return fmt.Sprintf(`x.Neg{%v}`, String(it[0]))
+}
+
+func (it Neg) Print() { fmt.Println(it) }
 
 // -------------------------------- Any -------------------------------
 
-type Any []any // rune{n}
+// Any represents a specific number of any valid rune.
+//
+// PEGN
+//
+//    .{n}
+//
+type Any []any
 
-func (args Any) String() string {
-	switch len(args) {
-	case 1:
-		n, isint := args[0].(int)
-		if !isint {
-			return _UsageAny
-		}
-		return `x.Any{` + strconv.Itoa(n) + `}`
-	default:
+func (it Any) String() string {
+	if len(it) != 1 {
 		return _UsageAny
 	}
+	if _, isint := it[0].(int); !isint {
+		return _UsageAny
+	}
+	return fmt.Sprintf(`x.Any{%v}`, it[0])
 }
 
-func (a Any) Print() { fmt.Println(a) }
+func (it Any) Print() { fmt.Println(it) }
 
 // -------------------------------- Toi -------------------------------
 
+// Toi represents any rune up to and including the specified rule.
+//
+// PEGN
+//
+//    ..rule
+//
 type Toi []any // ..rule
+
+func (it Toi) String() string {
+	if len(it) != 1 {
+		return _UsageToi
+	}
+	return fmt.Sprintf(`x.Toi{%v}`, String(it[0]))
+}
+
+func (it Toi) Print() { fmt.Println(it) }
 
 // -------------------------------- Tox -------------------------------
 
-type Tox []any // ...rule
+// Tox represents any rune up to the specified rule, but excluding it.
+//
+// PEGN
+//
+//    ...rule
+//
+type Tox []any // ..rule
+
+func (it Tox) String() string {
+	if len(it) != 1 {
+		return _UsageTox
+	}
+	return fmt.Sprintf(`x.Tox{%v}`, String(it[0]))
+}
+
+func (it Tox) Print() { fmt.Println(it) }
 
 // -------------------------------- Rng -------------------------------
 
-type Rng []any // [a-f] / [x43-x54] / [u3243-u4545]
+// Rng represents an inclusive range between any two valid runes.
+//
+// PEGN
+//
+//     [a-f] / [x43-x54] / [u3243-u4545]
+//
+type Rng []any
+
+func (it Rng) String() string {
+	if len(it) != 2 {
+		return _UsageRng
+	}
+	if _, isrune := it[0].(rune); !isrune {
+		return _UsageRng
+	}
+	if _, isrune := it[1].(rune); !isrune {
+		return _UsageRng
+	}
+	return fmt.Sprintf(`x.Rng{%q, %q}`, it[0], it[1])
+}
+
+func (it Rng) Print() { fmt.Println(it) }
 
 // -------------------------------- End -------------------------------
 
-type End []any // !.
+// End represents the end of data, that there are no more runes to
+// examine.
+//
+// PEGN
+//
+//     !.
+//
+type End []any
+
+func (it End) String() string { return `x.End{}` }
+
+func (it End) Print() { fmt.Println(it) }

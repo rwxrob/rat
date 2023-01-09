@@ -45,24 +45,32 @@ func ExampleString() {
 
 }
 
-func ExampleRule() {
-
-	x.Rule{`foo`}.Print()
-	x.Rule{`foo`, `Foo`}.Print()
-	x.Rule{`foo`, `Foo`, 1}.Print()
-	x.Rule{[]any{`foo`, `bar`}, `Foo`, 1}.Print()
-	x.Rule{[]string{`foo`, `bar`}, `Foo`, 1}.Print()
-	x.Rule{x.Seq{`foo`, `bar`}, `Foo`, 1}.Print()
-	x.Rule{`foo`, `Foo`, 1, false}.Print()
+func ExampleString_any_Slice() {
+	fmt.Println(x.String([]any{`foo`}))
+	fmt.Println(x.String([]any{}))
 
 	// Output:
 	// "foo"
-	// x.Rule{"foo", "Foo"}
-	// x.Rule{"foo", "Foo", 1}
-	// x.Rule{x.Seq{"foo", "bar"}, "Foo", 1}
-	// x.Rule{x.Seq{"foo", "bar"}, "Foo", 1}
-	// x.Rule{x.Seq{"foo", "bar"}, "Foo", 1}
-	// "%!USAGE: x.Rule{rule,name,id} or x.Rule{rule,name}"
+	// "%!ERROR: invalid rat/x type or syntax"
+
+}
+
+// ------------------------------- Rule -------------------------------
+
+func ExampleRule() {
+
+	x.Rule{`FooName`, 2, `foo`}.Print()
+	x.Rule{`FooName`, 0, `foo`}.Print()
+	x.Rule{`FooName`, -1, `foo`}.Print()
+	x.Rule{`FooName`, 0, `foo`, `toomuch`}.Print()
+	x.Rule{`FooName`, `notint`, `foo`}.Print()
+
+	// Output:
+	// x.Rule{"FooName", 2, "foo"}
+	// x.Rule{"FooName", 0, "foo"}
+	// x.Rule{"FooName", -1, "foo"}
+	// "%!USAGE: x.Rule{name, intid, rule}"
+	// "%!USAGE: x.Rule{name, intid, rule}"
 
 }
 
@@ -112,32 +120,20 @@ func ExampleIs() {
 
 }
 
-/*
-
 // -------------------------------- Seq -------------------------------
 
 func ExampleSeq() {
 
-	seq := x.Seq{`foo`, `bar`}
-	seq.Print()
-
-	//	seq.Print()
-
-	// Output:
-	// x.Seq{"foo", "bar"}
-
-}
-
-func ExampleSeq_from_Slice() {
-
-	vals := []any{`foo`, `bar`}
-	seq := x.Seq{vals}
-	fmt.Println(seq)
-	seq.Print()
+	x.Seq{`foo`, false, `bar`}.Print()
+	x.Seq{[]any{`foo`, `bar`}}.Print()
+	x.Seq{`foo`}.Print()
+	x.Seq{}.Print()
 
 	// Output:
+	// x.Seq{"foo", "false", "bar"}
 	// x.Seq{"foo", "bar"}
-	// x.Seq{"foo", "bar"}
+	// "foo"
+	// "%!USAGE: x.Seq{...rule}"
 
 }
 
@@ -145,11 +141,14 @@ func ExampleSeq_from_Slice() {
 
 func ExampleOne() {
 
-	one := x.One{}
-	one.Print()
+	x.One{`foo`, false, `bar`}.Print()
+	x.One{`foo`}.Print()
+	x.One{}.Print()
 
 	// Output:
-	// x.One{}
+	// x.One{"foo", "false", "bar"}
+	// "foo"
+	// "%!USAGE: x.One{...rule}"
 
 }
 
@@ -157,11 +156,14 @@ func ExampleOne() {
 
 func ExampleOpt() {
 
-	opt := x.Opt{}
-	opt.Print()
+	x.Opt{`foo`}.Print()
+	x.Opt{}.Print()
+	x.Opt{`foo`, false}.Print()
 
 	// Output:
-	// x.Opt{}
+	// x.Opt{"foo"}
+	// "%!USAGE: x.Opt{rule}"
+	// "%!USAGE: x.Opt{rule}"
 
 }
 
@@ -169,11 +171,33 @@ func ExampleOpt() {
 
 func ExampleLit() {
 
-	lit := x.Lit{}
-	lit.Print()
+	smile := int32('\u263A')
+
+	x.Lit{
+		`string`, []byte(`bytes as string`), []rune(`runes as string`), 'x', '😀',
+		true, false, -127, -32767, -9223372036854775808, -9785, int8(127), uint8(255),
+		3.141592653589793238, int16(32767), int64(9223372036854775807), int(smile),
+		'\x00', int32(9785), smile, '👩',
+	}.Print()
 
 	// Output:
-	// x.Lit{}
+	// "stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"
+
+}
+
+func ExampleLit_any_Slice() {
+
+	smile := int32('\u263A')
+	types := []any{
+		`string`, []byte(`bytes as string`), []rune(`runes as string`), 'x', '😀',
+		true, false, -127, -32767, -9223372036854775808, -9785, int8(127), uint8(255),
+		3.141592653589793238, int16(32767), int64(9223372036854775807), int(smile),
+		'\x00', int32(9785), smile, '👩',
+	}
+	x.Lit{types}.Print()
+
+	// Output:
+	// "stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"
 
 }
 
@@ -181,23 +205,28 @@ func ExampleLit() {
 
 func ExampleMn1() {
 
-	mn1 := x.Mn1{}
-	mn1.Print()
+	x.Mn1{`foo`}.Print()
+	x.Mn1{`foo`, `bar`}.Print()
+	x.Mn1{}.Print()
 
 	// Output:
-	// x.Mn1{}
-
+	// x.Mn1{"foo"}
+	// "%!USAGE: x.Mn1{rule}"
+	// "%!USAGE: x.Mn1{rule}"
 }
 
 // -------------------------------- Mn0 -------------------------------
 
 func ExampleMn0() {
 
-	mn0 := x.Mn0{}
-	mn0.Print()
+	x.Mn0{`foo`}.Print()
+	x.Mn0{}.Print()
+	x.Mn0{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Mn0{}
+	// x.Mn0{"foo"}
+	// "%!USAGE: x.Mn0{rule}"
+	// "%!USAGE: x.Mn0{rule}"
 
 }
 
@@ -205,11 +234,16 @@ func ExampleMn0() {
 
 func ExampleMin() {
 
-	min := x.Min{}
-	min.Print()
+	x.Min{2, `foo`}.Print()
+	x.Min{}.Print()
+	x.Min{2, `foo`, `bar`}.Print()
+	x.Min{`two`, `foo`}.Print()
 
 	// Output:
-	// x.Min{}
+	// x.Min{2, "foo"}
+	// "%!USAGE: x.Min{n, rule}"
+	// "%!USAGE: x.Min{n, rule}"
+	// "%!USAGE: x.Min{n, rule}"
 
 }
 
@@ -217,11 +251,16 @@ func ExampleMin() {
 
 func ExampleMax() {
 
-	max := x.Max{}
-	max.Print()
+	x.Max{2, `foo`}.Print()
+	x.Max{}.Print()
+	x.Max{2, `foo`, `bar`}.Print()
+	x.Max{`two`, `foo`}.Print()
 
 	// Output:
-	// x.Max{}
+	// x.Max{2, "foo"}
+	// "%!USAGE: x.Max{n, rule}"
+	// "%!USAGE: x.Max{n, rule}"
+	// "%!USAGE: x.Max{n, rule}"
 
 }
 
@@ -229,11 +268,35 @@ func ExampleMax() {
 
 func ExampleMmx() {
 
-	mmx := x.Mmx{}
-	mmx.Print()
+	x.Mmx{2, 4, `foo`}.Print()
+	x.Mmx{}.Print()
+	x.Mmx{2, 4, `foo`, `bar`}.Print()
+	x.Mmx{`two`, 4, `foo`}.Print()
+	x.Mmx{2, `four`, `foo`}.Print()
 
 	// Output:
-	// x.Mmx{}
+	// x.Mmx{2, 4, "foo"}
+	// "%!USAGE: x.Mmx{n, m, rule}"
+	// "%!USAGE: x.Mmx{n, m, rule}"
+	// "%!USAGE: x.Mmx{n, m, rule}"
+	// "%!USAGE: x.Mmx{n, m, rule}"
+
+}
+
+// -------------------------------- Rep -------------------------------
+
+func ExampleRep() {
+
+	x.Rep{2, `foo`}.Print()
+	x.Rep{}.Print()
+	x.Rep{2, `foo`, `bar`}.Print()
+	x.Rep{`two`, `foo`}.Print()
+
+	// Output:
+	// x.Rep{2, "foo"}
+	// "%!USAGE: x.Rep{n, rule}"
+	// "%!USAGE: x.Rep{n, rule}"
+	// "%!USAGE: x.Rep{n, rule}"
 
 }
 
@@ -241,11 +304,14 @@ func ExampleMmx() {
 
 func ExamplePos() {
 
-	pos := x.Pos{}
-	pos.Print()
+	x.Pos{`foo`}.Print()
+	x.Pos{}.Print()
+	x.Pos{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Pos{}
+	// x.Pos{"foo"}
+	// "%!USAGE: x.Pos{rule}"
+	// "%!USAGE: x.Pos{rule}"
 
 }
 
@@ -253,11 +319,14 @@ func ExamplePos() {
 
 func ExampleNeg() {
 
-	neg := x.Neg{}
-	neg.Print()
+	x.Neg{`foo`}.Print()
+	x.Neg{}.Print()
+	x.Neg{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Neg{}
+	// x.Neg{"foo"}
+	// "%!USAGE: x.Neg{rule}"
+	// "%!USAGE: x.Neg{rule}"
 
 }
 
@@ -265,11 +334,14 @@ func ExampleNeg() {
 
 func ExampleAny() {
 
-	any := x.Any{}
-	any.Print()
+	x.Any{5}.Print()
+	x.Any{}.Print()
+	x.Any{`five`}.Print()
 
 	// Output:
-	// x.Any{}
+	// x.Any{5}
+	// "%!USAGE: x.Any{n}"
+	// "%!USAGE: x.Any{n}"
 
 }
 
@@ -277,11 +349,14 @@ func ExampleAny() {
 
 func ExampleToi() {
 
-	toi := x.Toi{}
-	toi.Print()
+	x.Toi{`foo`}.Print()
+	x.Toi{}.Print()
+	x.Toi{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Toi{}
+	// x.Toi{"foo"}
+	// "%!USAGE: x.Toi{rule}"
+	// "%!USAGE: x.Toi{rule}"
 
 }
 
@@ -289,11 +364,14 @@ func ExampleToi() {
 
 func ExampleTox() {
 
-	tox := x.Tox{}
-	tox.Print()
+	x.Tox{`foo`}.Print()
+	x.Tox{}.Print()
+	x.Tox{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Tox{}
+	// x.Tox{"foo"}
+	// "%!USAGE: x.Tox{rule}"
+	// "%!USAGE: x.Tox{rule}"
 
 }
 
@@ -301,23 +379,19 @@ func ExampleTox() {
 
 func ExampleRng() {
 
-	rng := x.Rng{}
-	rng.Print()
+	x.Rng{'a', 'Z'}.Print()
+	x.Rng{}.Print()
+	x.Rng{'a', 'Z', `foo`}.Print()
+	x.Rng{`an a`, 'Z'}.Print()
+	x.Rng{'a', `a Z`}.Print()
 
 	// Output:
-	// x.Rng{}
+	// x.Rng{'a', 'Z'}
+	// "%!USAGE: x.Rng{beg, end}"
+	// "%!USAGE: x.Rng{beg, end}"
+	// "%!USAGE: x.Rng{beg, end}"
+	// "%!USAGE: x.Rng{beg, end}"
 
 }
 
 // -------------------------------- End -------------------------------
-
-func ExampleEnd() {
-
-	end := x.End{}
-	end.Print()
-
-	// Output:
-	// x.End{}
-
-}
-*/
