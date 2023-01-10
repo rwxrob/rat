@@ -1,8 +1,13 @@
 /*
-Package rat...
-
-
-
+Package rat implements a PEG packrat parser that takes advantage of Go's
+unique ability to switch on type to create an interpreted meta-language
+consisting entirely of Go types. These types serve as tokens that any
+lexer would create when lexing a higher level meta language such as PEG,
+PEGN, or regular expressions. Passing these types to rat.Pack compiles
+(memoizes) them into a grammar of parsing functions not unlike
+compilation of regular expressions. The string representations of these
+structs consists of entirely of valid, compilable Go code suitable for
+parser code generation for parsers of any type, in any language.
 */
 package rat
 
@@ -26,6 +31,7 @@ import "fmt"
 // expression. Results are always integer pointers to specific positions
 // within the data passed so there is never wasteful redundancy. This
 // maximizes performance and minimizes memory utilization.
+//
 func Pack(seq ...any) *Grammar { return new(Grammar).Pack(seq...) }
 
 // RuleMaker implementations must return a new Rule created from any
@@ -34,6 +40,7 @@ func Pack(seq ...any) *Grammar { return new(Grammar).Pack(seq...) }
 // return a previously cached rule if the input arguments are identified
 // as representing an identical previous rule. This fulfills the
 // PEG packrat parsing requirement for functional memoization.
+//
 type RuleMaker interface {
 	MakeRule(in any) *Rule
 }
@@ -47,6 +54,7 @@ type RuleMaker interface {
 // correspond with the enclosed values within the CheckFunc closure and
 // so that the Name can be used to uniquely identify the Rule from among
 // others in a rat.Map.
+//
 type Rule struct {
 	Name  string    // name corresponding to ID (sometimes dynamically assigned)
 	ID    int       // unique ID for Result one-one with Name
@@ -54,7 +62,31 @@ type Rule struct {
 	Check CheckFunc // usually closure
 }
 
+// String implements the fmt.Stringer interface by returning the
+// Rule.Text.
 func (r Rule) String() string { return r.Text }
-func (r Rule) Print()         { fmt.Println(r) }
 
+// Print is a shortcut for fmt.Println(rule) which calls String.
+func (r Rule) Print() { fmt.Println(r) }
+
+// CheckFunc examines the []rune buffer at a specific position for
+// a specific grammar rule and should generally only be used from an
+// encapsulating Rule so that it has a Text identifier associated with
+// it. One or more Rules may, however, encapsulate the same CheckFunc
+// function.
+//
+// CheckFunc MUST return a Result indicating success or failure by
+// setting Result.X (error) for failure. (Note that this is unlike many
+// packrat designs that return nil to indicate rule failure.)
+//
+// CheckFunc MUST set Result.X (error) if unable to match the entire
+// rule and MUST advance to the E (end) to the farthest possible position in
+// the []rune slice before failure occurred. This allows for better
+// recovery and specific user-facing error messages while promoting
+// succinct rule development.
+//
 type CheckFunc func(r []rune, i int) Result
+
+// IsFunc functions return true if the passed rune is contained in a set
+// of runes. The unicode package contains several examples.
+type IsFunc func(r rune) bool

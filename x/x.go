@@ -174,7 +174,7 @@ func funcName(it any) string {
 }
 
 // IsFunc functions return true if the passed rune is contained in a set
-// of runes. The unicode package is full of examples of these.
+// of runes. The unicode package contains several examples.
 type IsFunc func(r rune) bool
 
 // Is takes a single IsFunc argument which must refer to a non-anonymous

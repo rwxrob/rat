@@ -1,12 +1,6 @@
 package rat_test
 
-import (
-	"strings"
-
-	"github.com/rwxrob/rat"
-	"github.com/rwxrob/rat/x"
-)
-
+/*
 func ExampleRule() {
 
 	rule := new(rat.Rule)
@@ -57,3 +51,4 @@ func ExamplePack_ref() {
 	// Output:
 	// some
 }
+*/

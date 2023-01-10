@@ -137,6 +137,7 @@ func (g *Grammar) makeLit(in string) *Rule {
 	rule = g.newRule()
 	rule.Name = in
 	rule.Text = fmt.Sprintf(`%q`, in)
+	g.addRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		var err error
