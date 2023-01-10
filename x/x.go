@@ -534,22 +534,38 @@ func (it Neg) Print() { fmt.Println(it) }
 
 // -------------------------------- Any -------------------------------
 
-// Any represents a specific number of any valid rune.
+// Any represents a specific number of any valid rune. If more than one
+// argument, then first is minimum and second maximum. If the maximum
+// is 0 then maximum is unlimited and will consume all runes remaining.
 //
 // PEGN
 //
 //    .{n}
+//    .{n,m}
 //
 type Any []any
 
 func (it Any) String() string {
-	if len(it) != 1 {
+	switch len(it) {
+
+	case 1: // exact number
+		if _, isint := it[0].(int); !isint {
+			return _UsageAny
+		}
+		return fmt.Sprintf(`x.Any{%v}`, it[0])
+
+	case 2: // min to max
+		if _, isint := it[0].(int); !isint {
+			return _UsageAny
+		}
+		if _, isint := it[1].(int); !isint {
+			return _UsageAny
+		}
+		return fmt.Sprintf(`x.Any{%v, %v}`, it[0], it[1])
+
+	default:
 		return _UsageAny
 	}
-	if _, isint := it[0].(int); !isint {
-		return _UsageAny
-	}
-	return fmt.Sprintf(`x.Any{%v}`, it[0])
 }
 
 func (it Any) Print() { fmt.Println(it) }

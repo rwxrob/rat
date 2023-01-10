@@ -378,6 +378,21 @@ func ExampleAny() {
 
 }
 
+func ExampleAny_minmax() {
+
+	x.Any{5, 10}.Print()
+	x.Any{}.Print()
+	x.Any{`five`, 10}.Print()
+	x.Any{5, `ten`}.Print()
+
+	// Output:
+	// x.Any{5, 10}
+	// "%!USAGE: x.Any{n}"
+	// "%!USAGE: x.Any{n}"
+	// "%!USAGE: x.Any{n}"
+
+}
+
 // -------------------------------- Toi -------------------------------
 
 func ExampleToi() {
