@@ -1,11 +1,12 @@
 /*
-Package x (as in "expressions") contains the rat/x grammar in the form
-of Go []any types.  These type definitions allow any grammar that can be
-expresses in PEG (or PEGN) to be implemented entirely in highly
-performant, compilable Go code and easily rendered to any other
-language. This makes rat/x highly useful for generating PEG parsing code
-in any programming language, or as a replacement for regular expressions
-(which lack lookarounds and other PEG-capable constructs).
+Package x (as in "expressions") contains the rat/x (pronounced "ratex")
+language in the form of Go []any types.  These type definitions allow any
+grammar that can be expresses in PEG (or PEGN) to be implemented
+entirely in highly performant, compilable Go code and easily rendered to
+any other language. This makes rat/x highly useful for generating PEG
+parsing code in any programming language, or as a replacement for
+regular expressions (which lack lookarounds and other PEG-capable
+constructs).
 
 Typed []any slices are used by convention to keep the syntax consistent.
 These can be thought of as the tokens that would result from tokenizing
@@ -15,7 +16,7 @@ types are used incorrectly the string representation contains the
 %!ERROR or %!USAGE prefix. Each type also implements a Print() method
 that is shorthand for fmt.Println(self).
 
-    Rule - Foo <- rule or <:Foo rule >
+    Name - Foo <- rule or <:Foo rule >
     Ref  - reference another rule by name
     Is   - boolean class function
     Seq  - (rule1 rule2)
@@ -107,18 +108,20 @@ func String(it any) string {
 	}
 }
 
-// ------------------------------- Rule -------------------------------
+// ------------------------------- Name -------------------------------
 
-// Rule encapsulates another rule with a name and optional integer ID.
-// Names can be any valid Go string. The first argument must be the
-// unique name of the rule to encapsulate, the second argument must be
-// an integer ID. If the ID is 0 (Unknown) an integer will be assigned
-// automatically. Negative integer IDs are allowed. The third argument
-// is the rule to encapsulate.
+// Name encapsulates another rule with a name. In PEGN these are called
+// "significant" because they can be easily found in the parsed results
+// tree. Names can be any valid Go string but keeping to non-whitespace
+// UTF-8 runes is strongly recommended (and required for rendering to
+// PEG/PEGN). The first argument must be the unique name of the rule to
+// encapsulate. The second argument is the rule to associate with the
+// name.
 //
 // PEGN
 //
-//    Foo <- rule / <:Foo rule >
+//    Foo <-- rule
+//    Bar <-- Foo{2}
 //
 type Rule []any
 

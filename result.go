@@ -93,6 +93,10 @@ func (m Result) String() string {
 // Print is shortcut for fmt.Println(String).
 func (m Result) Print() { fmt.Println(m) }
 
+// Text returns the text between beginning (B) and ending (E)
+// (non-inclusively) It is a shortcut for res.R[res.B:res.E].
+func (m Result) Text() { return m.R[m.B:m.E] }
+
 // Named does a depth first descent into the sub-match child results (S)
 // adding any result with a name (Result.N>0) that matches.
 func (m Result) Named(names ...int) []Result {

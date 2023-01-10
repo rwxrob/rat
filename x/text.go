@@ -2,7 +2,7 @@ package x
 
 const (
 	_SyntaxError = `"%!ERROR: invalid rat/x type or syntax"`
-	_UsageRule   = `"%!USAGE: x.Rule{name, intid, rule}"`
+	_UsageName   = `"%!USAGE: x.Name{name, rule}"`
 	_UsageRef    = `"%!USAGE: x.Ref{name}"`
 	_UsageIs     = `"%!USAGE: x.Is{namedfunc}"`
 	_UsageAny    = `"%!USAGE: x.Any{n}"`

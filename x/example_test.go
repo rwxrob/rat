@@ -65,24 +65,17 @@ func ExampleString_any_Slice() {
 
 }
 
-// ------------------------------- Rule -------------------------------
+// ------------------------------- Name -------------------------------
 
-func ExampleRule() {
+func ExampleName() {
 
-	x.Rule{`FooName`, 2, `foo`}.Print()
-	x.Rule{`FooName`, 0, `foo`}.Print()
-	x.Rule{`FooName`, -1, `foo`}.Print()
-	x.Rule{`FooName`, 0, `foo`, `toomuch`}.Print()
-	x.Rule{`FooName`, `notint`, `foo`}.Print()
-	x.Rule{false, `notint`, `foo`}.Print()
+	x.Name{`FooName`, `foo`}.Print()
+	x.Name{`FooName`, `foo`, `toomuch`}.Print()
+	x.Name{false, `foo`}.Print()
 
 	// Output:
-	// x.Rule{"FooName", 2, "foo"}
-	// x.Rule{"FooName", 0, "foo"}
-	// x.Rule{"FooName", -1, "foo"}
-	// "%!USAGE: x.Rule{name, intid, rule}"
-	// "%!USAGE: x.Rule{name, intid, rule}"
-	// "%!USAGE: x.Rule{name, intid, rule}"
+	// x.Name{"FooName", "foo"}
+	// "%!USAGE: x.Name{name, rule}"
 
 }
 
