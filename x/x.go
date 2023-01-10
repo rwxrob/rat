@@ -69,7 +69,7 @@ func String(it any) string {
 
 		switch len(v) {
 		case 0:
-			return _SyntaxError
+			return SyntaxError
 		case 1:
 			return String(v[0])
 		default:
@@ -123,22 +123,19 @@ func String(it any) string {
 //    Foo <-- rule
 //    Bar <-- Foo{2}
 //
-type Rule []any
+type Name []any
 
-func (it Rule) String() string {
-	if len(it) != 3 {
-		return _UsageRule
+func (it Name) String() string {
+	if len(it) != 2 {
+		return UsageName
 	}
 	if _, is := it[0].(string); !is {
-		return _UsageRule
+		return UsageName
 	}
-	if _, is := it[1].(int); !is {
-		return _UsageRule
-	}
-	return fmt.Sprintf(`x.Rule{%q, %v, %v}`, it[0], it[1], String(it[2]))
+	return fmt.Sprintf(`x.Name{%q, %v}`, it[0], String(it[1]))
 }
 
-func (it Rule) Print() { fmt.Println(it) }
+func (it Name) Print() { fmt.Println(it) }
 
 // -------------------------------- Ref -------------------------------
 
@@ -157,11 +154,11 @@ func (args Ref) String() string {
 	case 1:
 		name, isstring := args[0].(string)
 		if !isstring {
-			return _UsageRef
+			return UsageRef
 		}
 		return `x.Ref{"` + name + `"}`
 	default:
-		return _UsageRef
+		return UsageRef
 	}
 }
 
@@ -201,14 +198,14 @@ func (it Is) String() string {
 		case IsFunc:
 			name = funcName(v)
 		default:
-			return _UsageIs
+			return UsageIs
 		}
 		if strings.HasPrefix(name, `func`) {
-			return _UsageIs
+			return UsageIs
 		}
 		return `x.Is{` + name + `}`
 	default:
-		return _UsageIs
+		return UsageIs
 	}
 }
 
@@ -238,7 +235,7 @@ func (rules Seq) String() string {
 		}
 		switch len(it) {
 		case 0:
-			return _UsageSeq
+			return UsageSeq
 		case 1:
 			return String(it[0])
 		default:
@@ -249,7 +246,7 @@ func (rules Seq) String() string {
 			return str + `}`
 		}
 	case 0:
-		return _UsageSeq
+		return UsageSeq
 	default:
 		str := `x.Seq{` + String(rules[0])
 		for _, rule := range rules[1:] {
@@ -279,7 +276,7 @@ type One []any
 func (rules One) String() string {
 	switch len(rules) {
 	case 0:
-		return _UsageOne
+		return UsageOne
 	case 1:
 		return String(rules[0])
 	default:
@@ -305,7 +302,7 @@ type Opt []any
 
 func (it Opt) String() string {
 	if len(it) != 1 {
-		return _UsageOpt
+		return UsageOpt
 	}
 	return `x.Opt{` + String(it[0]) + `}`
 }
@@ -333,7 +330,7 @@ func (rules Lit) String() string {
 	switch len(rules) {
 
 	case 0:
-		return _UsageLit
+		return UsageLit
 
 	case 1:
 		it, isslice := rules[0].([]any)
@@ -341,7 +338,7 @@ func (rules Lit) String() string {
 			return String(rules[0])
 		}
 		if len(it) == 0 {
-			return _UsageLit
+			return UsageLit
 		}
 		var str string
 		for _, rule := range it {
@@ -377,7 +374,7 @@ type Mn1 []any
 
 func (it Mn1) String() string {
 	if len(it) != 1 {
-		return _UsageMn1
+		return UsageMn1
 	}
 	return `x.Mn1{` + String(it[0]) + `}`
 }
@@ -396,7 +393,7 @@ type Mn0 []any // rule*
 
 func (it Mn0) String() string {
 	if len(it) != 1 {
-		return _UsageMn0
+		return UsageMn0
 	}
 	return `x.Mn0{` + String(it[0]) + `}`
 }
@@ -415,10 +412,10 @@ type Min []any
 
 func (it Min) String() string {
 	if len(it) != 2 {
-		return _UsageMin
+		return UsageMin
 	}
 	if _, isint := it[0].(int); !isint {
-		return _UsageMin
+		return UsageMin
 	}
 	return fmt.Sprintf(`x.Min{%v, %v}`, it[0], String(it[1]))
 }
@@ -438,10 +435,10 @@ type Max []any
 
 func (it Max) String() string {
 	if len(it) != 2 {
-		return _UsageMax
+		return UsageMax
 	}
 	if _, isint := it[0].(int); !isint {
-		return _UsageMax
+		return UsageMax
 	}
 	return fmt.Sprintf(`x.Max{%v, %v}`, it[0], String(it[1]))
 }
@@ -460,13 +457,13 @@ type Mmx []any
 
 func (it Mmx) String() string {
 	if len(it) != 3 {
-		return _UsageMmx
+		return UsageMmx
 	}
 	if _, isint := it[0].(int); !isint {
-		return _UsageMmx
+		return UsageMmx
 	}
 	if _, isint := it[1].(int); !isint {
-		return _UsageMmx
+		return UsageMmx
 	}
 	return fmt.Sprintf(`x.Mmx{%v, %v, %v}`, it[0], it[1], String(it[2]))
 }
@@ -485,10 +482,10 @@ type Rep []any
 
 func (it Rep) String() string {
 	if len(it) != 2 {
-		return _UsageRep
+		return UsageRep
 	}
 	if _, isint := it[0].(int); !isint {
-		return _UsageRep
+		return UsageRep
 	}
 	return fmt.Sprintf(`x.Rep{%v, %v}`, it[0], String(it[1]))
 }
@@ -508,7 +505,7 @@ type Pos []any
 
 func (it Pos) String() string {
 	if len(it) != 1 {
-		return _UsagePos
+		return UsagePos
 	}
 	return fmt.Sprintf(`x.Pos{%v}`, String(it[0]))
 }
@@ -528,7 +525,7 @@ type Neg []any
 
 func (it Neg) String() string {
 	if len(it) != 1 {
-		return _UsageNeg
+		return UsageNeg
 	}
 	return fmt.Sprintf(`x.Neg{%v}`, String(it[0]))
 }
@@ -553,21 +550,21 @@ func (it Any) String() string {
 
 	case 1: // exact number
 		if _, isint := it[0].(int); !isint {
-			return _UsageAny
+			return UsageAny
 		}
 		return fmt.Sprintf(`x.Any{%v}`, it[0])
 
 	case 2: // min to max
 		if _, isint := it[0].(int); !isint {
-			return _UsageAny
+			return UsageAny
 		}
 		if _, isint := it[1].(int); !isint {
-			return _UsageAny
+			return UsageAny
 		}
 		return fmt.Sprintf(`x.Any{%v, %v}`, it[0], it[1])
 
 	default:
-		return _UsageAny
+		return UsageAny
 	}
 }
 
@@ -585,7 +582,7 @@ type Toi []any // ..rule
 
 func (it Toi) String() string {
 	if len(it) != 1 {
-		return _UsageToi
+		return UsageToi
 	}
 	return fmt.Sprintf(`x.Toi{%v}`, String(it[0]))
 }
@@ -604,7 +601,7 @@ type Tox []any // ..rule
 
 func (it Tox) String() string {
 	if len(it) != 1 {
-		return _UsageTox
+		return UsageTox
 	}
 	return fmt.Sprintf(`x.Tox{%v}`, String(it[0]))
 }
@@ -623,13 +620,13 @@ type Rng []any
 
 func (it Rng) String() string {
 	if len(it) != 2 {
-		return _UsageRng
+		return UsageRng
 	}
 	if _, isrune := it[0].(rune); !isrune {
-		return _UsageRng
+		return UsageRng
 	}
 	if _, isrune := it[1].(rune); !isrune {
-		return _UsageRng
+		return UsageRng
 	}
 	return fmt.Sprintf(`x.Rng{%q, %q}`, it[0], it[1])
 }
@@ -649,7 +646,7 @@ type End []any
 
 func (it End) String() string {
 	if len(it) != 0 {
-		return _UsageEnd
+		return UsageEnd
 	}
 	return `x.End{}`
 }
