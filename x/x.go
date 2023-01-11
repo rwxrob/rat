@@ -17,7 +17,9 @@ types are used incorrectly the string representation contains the
 that is shorthand for fmt.Println(self).
 
     Name - Foo <- rule or <:Foo rule >
-    Ref  - reference another rule by name
+    ID   - use integer instead of string name to save output space
+    Ref  - reference another rule by Name
+    Rid  - reference another rule by ID
     Is   - boolean class function
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
@@ -116,7 +118,9 @@ func String(it any) string {
 // UTF-8 runes is strongly recommended (and required for rendering to
 // PEG/PEGN). The first argument must be the unique name of the rule to
 // encapsulate. The second argument is the rule to associate with the
-// name.
+// name. The name appears in the results output JSON if set (see
+// rat.Result). When output space is a concern, consider using the ID/Rid
+// rules instead. Generally, mixing Name and ID types is discouraged.
 //
 // PEGN
 //
@@ -137,6 +141,37 @@ func (it Name) String() string {
 
 func (it Name) Print() { fmt.Println(it) }
 
+// -------------------------------- ID --------------------------------
+
+// ID encapsulates another rule with a integer identifier. This is
+// functionally the same as a Name but saves space in the results output
+// produced because 1 or 2 digits are used instead of the full string of
+// a name. The first argument must be the unique integer of the rule to
+// encapsulate. The second argument is the rule to associate with the
+// name. When output space is not a concern, or more understandable
+// output results are preferred, consider using Name/Ref rules instead.
+// Generally, Name and ID rules are not mixed. The name appears in the
+// results output JSON if set (see rat.Result).
+//
+// PEGN
+//
+// There is no PEGN equivalent. Integers would simply be mapped to
+// string names by applications consuming the JSON parse tree output.
+//
+type ID []any
+
+func (it ID) String() string {
+	if len(it) != 2 {
+		return UsageID
+	}
+	if _, is := it[0].(int); !is {
+		return UsageID
+	}
+	return fmt.Sprintf(`x.ID{%v, %v}`, it[0], String(it[1]))
+}
+
+func (it ID) Print() { fmt.Println(it) }
+
 // -------------------------------- Ref -------------------------------
 
 // Ref refers to another rule by name. This prevents having to assign
@@ -147,22 +182,44 @@ func (it Name) Print() { fmt.Println(it) }
 //     Foo     <- 'some' 'thing'
 //     Another <- Foo 'else'
 //
-type Ref []any // EndOfLine <- CR? LF; Block <- rune+ EndOfLine
+type Ref []any
 
 func (args Ref) String() string {
 	switch len(args) {
 	case 1:
-		name, isstring := args[0].(string)
+		_, isstring := args[0].(string)
 		if !isstring {
 			return UsageRef
 		}
-		return `x.Ref{"` + name + `"}`
+		return fmt.Sprintf(`x.Ref{%q}`, args[0])
 	default:
 		return UsageRef
 	}
 }
 
 func (it Ref) Print() { fmt.Println(it) }
+
+// -------------------------------- Rid -------------------------------
+
+// Rid refers to another rule by ID. This prevents having to assign
+// rules to variables and use them in subsequent rules.
+//
+type Rid []any
+
+func (args Rid) String() string {
+	switch len(args) {
+	case 1:
+		_, isint := args[0].(int)
+		if !isint {
+			return UsageRid
+		}
+		return fmt.Sprintf(`x.Rid{"%v"}`, args[0])
+	default:
+		return UsageRid
+	}
+}
+
+func (it Rid) Print() { fmt.Println(it) }
 
 // -------------------------------- Is --------------------------------
 

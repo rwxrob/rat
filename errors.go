@@ -21,3 +21,7 @@ type ErrArgs struct{ any }
 func (e ErrArgs) Error() string {
 	return fmt.Sprintf(_ErrArgs, e.any)
 }
+
+// ---------------------------- ErrNotFound ---------------------------
+
+type ErrNotFound struct{ any }

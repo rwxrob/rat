@@ -6,11 +6,18 @@ import (
 )
 
 // Result contains the result of an evaluated Rule function along with
-// its own []rune slice (R) (which refers to the same underlying array
-// in memory as other rules).
+// its own []rune slice (R).
 //
-// T (for "type") is an integer mapped to the rule that was used to
-// produce this result, usually associated with a longer string name.
+// N (for "Name") is a string name for a result mapped to the x.Name
+// rule. This makes for easy reading and walking of results trees since
+// the string name is included in the output JSON (see String).
+// Normally, mixing x.ID and x.Name rules is avoided.
+//
+// I (for "ID") is an integer mapped to the x.ID rule. Integer IDs are
+// preferable to names (N) in cases where the use of names would
+// increase the parse tree output JSON (see String) beyond acceptable
+// levels since integer identifiers rarely take more than 2 runes each.
+// Normally, mixing x.ID and x.Name rules is avoided.
 //
 // B (for "beginning") is the inclusive beginning position index of the
 // first rune in Buf that matches.
@@ -30,8 +37,19 @@ import (
 // successful without advancing the position at all. E is also greater
 // than B if a partial match was made that still resulted in an error.
 // Only checking X can absolutely confirm a rule failure.
+//
+// Avoid taking reference to Result
+//
+// A Result is already made up of references so no further dereferencing
+// is required. The buffer (R) is a slice and therefore all slices point
+// to the same underlying array in memory. And no actual string data is
+// saved in any Result. Rather, the beginning and ending positions
+// within the buffer data are stored and retrieved when needed with
+// methods such as Text().
+//
 type Result struct {
-	T int      // integer rule type corresponding to rule.ID
+	N string   // string name (x.Name)
+	I int      // integer identifier (x.ID)
 	B int      // beginning (inclusive)
 	E int      // ending (non-inclusive)
 	X error    // error, eXpected something else
@@ -40,20 +58,25 @@ type Result struct {
 }
 
 // MarshalJSON fulfills the encoding.JSONMarshaler interface. The begin
-// (B), end (E) are always included. The type (T), buffer (R), error (X)
-// and child sub-matches (C) are only included if not empty. Child
-// sub-matches omit the buffer (R). The order of fields is guaranteed
-// not to change.  Output is always a single line. There is no
-// dependency on the reflect package. The buffer (R) is rendered as
+// (B), end (E) are always included. The name (N), id (I), buffer (R),
+// error (X) and child sub-matches (C) are only included if not empty.
+// Child sub-matches omit the buffer (R). The order of fields is
+// guaranteed not to change.  Output is always a single line. There is
+// no dependency on the reflect package. The buffer (R) is rendered as
 // a quoted string (%q) with no further escaping (unlike built-in Go
 // JSON marshaling which escapes things unnecessarily producing
-// unreadable output). An error is never returned.
+// unreadable output). The buffer (R) is never included for children
+// (which is the same). An error is never returned.
 func (m Result) MarshalJSON() ([]byte, error) {
 
 	s := "{"
 
-	if m.T > 0 {
-		s += fmt.Sprintf(`"T":%v,`, m.T)
+	if m.N != "" {
+		s += fmt.Sprintf(`"N":%v,`, m.N)
+	}
+
+	if m.I > 0 {
+		s += fmt.Sprintf(`"I":%v,`, m.I)
 	}
 
 	s += fmt.Sprintf(`"B":%v,"E":%v`, m.B, m.E)
@@ -65,7 +88,7 @@ func (m Result) MarshalJSON() ([]byte, error) {
 	if len(m.C) > 0 {
 		results := []string{}
 		for _, c := range m.C {
-			results = append(results, Result{c.T, c.B, c.E, c.X, c.C, nil}.String())
+			results = append(results, Result{c.N, c.I, c.B, c.E, c.X, c.C, nil}.String())
 		}
 		s += `,"C":[` + strings.Join(results, ",") + `]`
 	}
@@ -94,20 +117,45 @@ func (m Result) String() string {
 func (m Result) Print() { fmt.Println(m) }
 
 // Text returns the text between beginning (B) and ending (E)
-// (non-inclusively) It is a shortcut for res.R[res.B:res.E].
-func (m Result) Text() { return m.R[m.B:m.E] }
+// (non-inclusively) It is a shortcut for
+// string(res.R[res.B:res.E]).
+func (m Result) Text() string { return string(m.R[m.B:m.E]) }
 
-// Named does a depth first descent into the sub-match child results (S)
-// adding any result with a name (Result.N>0) that matches.
-func (m Result) Named(names ...int) []Result {
+/*
+// WalkLevels will pass a tree of results (starting with itself) to the
+// given function traversing in a synchronous, breadth-first, leveler
+// way. The function passed may be a closure containing variables,
+// contexts, or a channel outside of its own scope to be updated for
+// each visit. This method uses functional recursion which may have some
+// limitations depending on the depth of node trees required.
+func (m Result) WalkLevels(do func(n Result)) {
+		list := qstack.New[*Node[T]]()
+		list.Unshift(n)
+		for list.Len > 0 {
+			cur := list.Shift()
+			list.Push(cur.Nodes()...)
+			do(cur)
+		}
+}
+*/
+
+// Named returns all results with any of the passed names. Returns zero length slice if no results.
+// TODO set tree walking algorithm
+func (m Result) Named(names ...string) []Result {
 	res := []Result{}
-	// TODO
+
+	// look up the current name
+
+	// iterate through children, depth first
+
 	return res
 }
 
-// NamedString is the same as Named but uses the full string name.
-func (m Result) NamedString(names ...string) []Result {
-	res := []Result{}
-	// TODO
-	return res
+// First returns first hit from Named or nil if no matches.
+func (m Result) First(named ...string) *Result {
+	results := m.Named(named...)
+	if len(results) == 0 {
+		return nil
+	}
+	return &results[0]
 }

@@ -76,6 +76,7 @@ func ExampleName() {
 	// Output:
 	// x.Name{"FooName", "foo"}
 	// "%!USAGE: x.Name{name, rule}"
+	// "%!USAGE: x.Name{name, rule}"
 
 }
 
@@ -366,8 +367,8 @@ func ExampleAny() {
 
 	// Output:
 	// x.Any{5}
-	// "%!USAGE: x.Any{n}"
-	// "%!USAGE: x.Any{n}"
+	// "%!USAGE: x.Any{n} or x.Any{n, m}"
+	// "%!USAGE: x.Any{n} or x.Any{n, m}"
 
 }
 
@@ -380,9 +381,9 @@ func ExampleAny_minmax() {
 
 	// Output:
 	// x.Any{5, 10}
-	// "%!USAGE: x.Any{n}"
-	// "%!USAGE: x.Any{n}"
-	// "%!USAGE: x.Any{n}"
+	// "%!USAGE: x.Any{n} or x.Any{n, m}"
+	// "%!USAGE: x.Any{n} or x.Any{n, m}"
+	// "%!USAGE: x.Any{n} or x.Any{n, m}"
 
 }
 

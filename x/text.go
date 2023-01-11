@@ -3,9 +3,11 @@ package x
 var (
 	SyntaxError = `"%!ERROR: invalid rat/x type or syntax"`
 	UsageName   = `"%!USAGE: x.Name{name, rule}"`
+	UsageID     = `"%!USAGE: x.ID{id, rule}"`
 	UsageRef    = `"%!USAGE: x.Ref{name}"`
+	UsageRid    = `"%!USAGE: x.Rid{id}"`
 	UsageIs     = `"%!USAGE: x.Is{namedfunc}"`
-	UsageAny    = `"%!USAGE: x.Any{n} or x.Any{n,m}"`
+	UsageAny    = `"%!USAGE: x.Any{n} or x.Any{n, m}"`
 	UsageLit    = `"%!USAGE: x.Lit{...any}"`
 	UsageSeq    = `"%!USAGE: x.Seq{...rule}"`
 	UsageOne    = `"%!USAGE: x.One{...rule}"`

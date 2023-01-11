@@ -29,13 +29,14 @@ func (g Grammar) String() string {
 
 func (g Grammar) Print() { fmt.Println(g) }
 
-// SetCheckRule sets the primary entry rule used when g.Check is called.
-func (g *Grammar) SetCheckRule(rule *Rule) *Grammar {
+// SetScanRule sets the primary entry rule used when g.Scan is called.
+func (g *Grammar) SetScanRule(rule *Rule) *Grammar {
 	g.rule = rule
 	return g
 }
 
-func (g *Grammar) Check(in any) Result {
+// Scan checks the input against the current scan rule (see SetScanRule).
+func (g *Grammar) Scan(in any) Result {
 	if g.rule == nil {
 		return Result{X: ErrIsZero{g.rule}}
 	}
@@ -51,11 +52,11 @@ func (g *Grammar) Check(in any) Result {
 	return g.rule.Check(runes, 0)
 }
 
-// Pack is shorthand for g.SetCheckRule(g.MakeRule(x.Seq{[]seq})).
+// Pack is shorthand for g.SetScanRule(g.MakeRule(x.Seq(seq))).
 func (g *Grammar) Pack(seq ...any) *Grammar {
 	xseq := x.Seq(seq)
 	rule := g.MakeRule(xseq)
-	return g.SetCheckRule(rule)
+	return g.SetScanRule(rule)
 }
 
 // MakeRule fulfills the MakeRule interface by returning the same Rule
@@ -75,8 +76,8 @@ func (g *Grammar) MakeRule(in any) *Rule {
 		return g.makeLit(string(v))
 
 	// types as expressions
-	case x.Rule:
-		return g.makeRule(v)
+	case x.Name:
+		return g.makeName(v)
 	case x.Seq:
 		return g.makeSeq(v)
 	case x.Any:
@@ -115,10 +116,10 @@ func (g *Grammar) addRule(rule *Rule) {
 	g.rules[rule.Name] = rule
 }
 
-func (g *Grammar) makeRule(in x.Rule) *Rule {
+func (g *Grammar) makeName(in x.Name) *Rule {
 	name, isstring := in[0].(string)
 	if !isstring {
-		panic(fmt.Sprintf(_ErrArgs, in))
+		panic(x.UsageName)
 	}
 	rule, has := g.rules[name]
 	if has {
@@ -156,7 +157,7 @@ func (g *Grammar) makeLit(in string) *Rule {
 		if n < runeslen {
 			err = ErrExpected{string(runes[n])}
 		}
-		return Result{T: rule.ID, R: r, B: start, E: i, X: err}
+		return Result{R: r, B: start, E: i, X: err}
 	}
 
 	return rule
@@ -182,9 +183,9 @@ func (g *Grammar) makeAny(in x.Any) *Rule {
 	rule.Check = func(r []rune, i int) Result {
 		start := i
 		if i+n > len(r) {
-			return Result{T: rule.ID, R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
 		}
-		return Result{T: rule.ID, R: r, B: start, E: i + n}
+		return Result{R: r, B: start, E: i + n}
 	}
 
 	return rule
@@ -217,10 +218,10 @@ func (g *Grammar) makeSeq(seq x.Seq) *Rule {
 			i = result.E
 			results = append(results, result)
 			if result.X != nil {
-				return Result{T: rule.ID, R: r, B: start, E: i, C: results, X: result.X}
+				return Result{R: r, B: start, E: i, C: results, X: result.X}
 			}
 		}
-		return Result{T: rule.ID, R: r, B: start, E: i, C: results}
+		return Result{R: r, B: start, E: i, C: results}
 	}
 
 	return rule
