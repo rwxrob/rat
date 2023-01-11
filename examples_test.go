@@ -1,5 +1,65 @@
 package rat_test
 
+import (
+	"fmt"
+
+	"github.com/rwxrob/rat"
+)
+
+func ExampleFlatFunc_ByDepth() {
+
+	r1 := rat.Result{N: `r1`, B: 1, E: 3}
+	r2 := r1
+	r1a := rat.Result{N: `r1a`, B: 1, E: 2}
+	r1b := rat.Result{N: `r1b`, B: 2, E: 3}
+	r1.C = rat.Results{r1a, r1b}
+	r2.N = `r2`
+
+	root := rat.Result{
+		N: `Root`, B: 1, E: 3, C: rat.Results{r1, r2},
+	}
+
+	for _, result := range rat.ByDepth(root) {
+		fmt.Println(result.N)
+	}
+
+	// Output:
+	// Root
+	// r1
+	// r1a
+	// r1b
+	// r2
+
+}
+
+func ExampleResult_WithName() {
+
+	foo := rat.Result{N: `foo`, I: 1, B: 2, E: 3}
+	r1 := rat.Result{N: `r1`, B: 1, E: 3}
+	r2 := r1
+	r1a := rat.Result{N: `r1a`, B: 1, E: 2}
+	r1b := rat.Result{N: `r1b`, B: 2, E: 3, C: rat.Results{foo}}
+	foo.I = 2
+	r1.C = rat.Results{r1a, r1b}
+	r2.N = `r2`
+	r2.C = rat.Results{foo}
+	foo.I = 3
+
+	root := rat.Result{
+		N: `Root`, B: 1, E: 3, C: rat.Results{r1, r2, foo},
+	}
+
+	for _, result := range root.WithName(`foo`) {
+		result.Print()
+	}
+
+	// Output:
+	// {"N":"foo","I":1,"B":2,"E":3}
+	// {"N":"foo","I":2,"B":2,"E":3}
+	// {"N":"foo","I":3,"B":2,"E":3}
+
+}
+
 /*
 func ExampleRule() {
 
