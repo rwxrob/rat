@@ -8,8 +8,18 @@ import (
 	"github.com/rwxrob/rat/x"
 )
 
+// Trace enables tracing parsing and checks while they happen. Output is
+// with the log package.
+var Trace int
+
+// DefaultRuleName is used by NewRule and AddRule as the prefix for new,
+// unnamed rules and is combined with the internal integer number that
+// increments for each new such rule added.
+var DefaultRuleName = `Rule`
+
 // additive only
 type Grammar struct {
+	Trace   int
 	names   []string
 	rules   map[string]*Rule
 	rule    *Rule
@@ -59,9 +69,16 @@ func (g *Grammar) Pack(seq ...any) *Grammar {
 	return g.SetScanRule(rule)
 }
 
-// MakeRule fulfills the MakeRule interface by returning the same Rule
-// created from a rat/x.Seq{in}.
+// MakeRule fulfills the MakeRule interface. The input argument is
+// usually a rat/x expression type. Anything else is interpreted as
+// a literal string by converting it into a string using the %v or %q
+// representation. This includes anything that implements the
+// fmt.Stringer interface.
 func (g *Grammar) MakeRule(in any) *Rule {
+
+	if g.Trace > 0 || Trace > 0 {
+		log.Printf("MakeRule(%v)", x.String(in))
+	}
 
 	switch v := in.(type) {
 
@@ -75,7 +92,7 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	case rune:
 		return g.makeLit(string(v))
 
-	// types as expressions
+	// rat/x types as expressions
 	case x.Name:
 		return g.makeName(v)
 	case x.Seq:
@@ -96,37 +113,61 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	return nil
 }
 
-func (g *Grammar) newRule() *Rule {
+// NewRule creates a new rule in the grammar cache using the defaults.
+// It is a convenience when the Name and ID are not needed. See AddRule
+// for details.
+func (g *Grammar) NewRule() *Rule {
 	rule := new(Rule)
-	g.addRule(rule)
+	g.AddRule(rule)
 	return rule
 }
 
-func (g *Grammar) addRule(rule *Rule) {
+// AddRule adds a new rule to the grammar cache keyed to the rule.Name.
+// If a rule was already keyed to that name it is overwritten. If the
+// rule.ID is 0, a new arbitrary ID is assigned that begins with -1 and
+// decreases for every new rule added with a 0 value. If the
+// rule.Name is empty the positive value of the ID is combined with the
+// DefaultRuleName prefix to provide a generic name.
+// Avoid changing the rule.Name or rule.ID values after added
+// since the key in the grammar cache is hard-coded to the rule.Name
+// when called. If the rule.Name and rule.ID are not important consider
+// NewRule instead (which uses these defaults and requires no argument).
+// Returns self for convenience.
+func (g *Grammar) AddRule(rule *Rule) *Rule {
 	if rule.ID == 0 {
 		g.rulenum++
 		rule.ID = g.rulenum
 	}
 	if rule.Name == "" {
-		rule.Name = DefaultRuleName + strconv.Itoa(rule.ID)
+		rule.Name = DefaultRuleName + strconv.Itoa(-rule.ID)
 	}
 	if g.rules == nil {
 		g.rules = map[string]*Rule{}
 	}
 	g.rules[rule.Name] = rule
+	return rule
 }
 
 func (g *Grammar) makeName(in x.Name) *Rule {
+
+	// syntax check
+	if len(in) != 2 {
+		panic(x.UsageName)
+	}
 	name, isstring := in[0].(string)
 	if !isstring {
 		panic(x.UsageName)
 	}
+
+	// check the cache, return if found
 	rule, has := g.rules[name]
 	if has {
 		return rule
 	}
 
-	// TODO
+	rule = g.MakeRule(in[1])
+	rule.Name = name
+
 	return rule
 }
 
@@ -135,10 +176,11 @@ func (g *Grammar) makeLit(in string) *Rule {
 	if has {
 		return rule
 	}
-	rule = g.newRule()
+
+	rule = new(Rule)
 	rule.Name = in
-	rule.Text = fmt.Sprintf(`%q`, in)
-	g.addRule(rule)
+	rule.Text = x.String(in)
+	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		var err error
@@ -165,20 +207,34 @@ func (g *Grammar) makeLit(in string) *Rule {
 
 func (g *Grammar) makeAny(in x.Any) *Rule {
 
-	n, isint := in[0].(int)
-	if !isint || len(in) != 1 {
-		panic(fmt.Sprintf(_ErrArgs, in))
-	}
-
-	name := `x.Any{` + strconv.Itoa(n) + `}`
+	name := in.String()
 	if r, have := g.rules[name]; have {
 		return r
 	}
 
+	switch len(in) {
+	case 1:
+		return g.makeAnyN(in)
+	case 2:
+		return g.makeAnyMmx(in)
+	default:
+		panic(x.UsageAny)
+	}
+}
+
+// only call from makeAny
+func (g *Grammar) makeAnyN(in x.Any) *Rule {
+
+	n, is := in[0].(int)
+	if !is {
+		panic(x.UsageAny)
+	}
+
+	name := in.String()
 	rule := new(Rule)
 	rule.Name = name
 	rule.Text = name
-	g.addRule(rule)
+	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		start := i
@@ -191,11 +247,53 @@ func (g *Grammar) makeAny(in x.Any) *Rule {
 	return rule
 }
 
-var DefaultRuleName = `Rule`
+// only call from makeAny
+func (g *Grammar) makeAnyMmx(in x.Any) *Rule {
+
+	m, is := in[0].(int)
+	if !is {
+		panic(x.UsageAny)
+	}
+
+	n, is := in[1].(int)
+	if !is {
+		panic(x.UsageAny)
+	}
+
+	if m >= n || n <= 0 {
+		panic(x.UsageAny)
+	}
+
+	name := in.String()
+	rule := new(Rule)
+	rule.Name = name
+	rule.Text = name
+	g.AddRule(rule)
+
+	rule.Check = func(r []rune, i int) Result {
+		start := i
+
+		// minimum is more than we have
+		if i+m > len(r) {
+			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+		}
+
+		// we have enough for max
+		if i+n > len(r) {
+			return Result{R: r, B: start, E: i + m}
+		}
+
+		// we have less than max, but more than min
+		return Result{R: r, B: start, E: len(r) - 1}
+	}
+
+	return rule
+
+}
 
 func (g *Grammar) makeSeq(seq x.Seq) *Rule {
 
-	rule := g.newRule()
+	rule := g.NewRule()
 
 	rules := []*Rule{}
 	for _, it := range seq {
