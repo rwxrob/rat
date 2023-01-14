@@ -2,6 +2,7 @@ package rat_test
 
 import (
 	"fmt"
+	"unicode"
 
 	"github.com/rwxrob/rat"
 	"github.com/rwxrob/rat/x"
@@ -61,22 +62,51 @@ func ExampleResult_WithName() {
 
 }
 
-func ExamplePack_name() {
+func ExamplePack_one_Named() {
 
 	one := x.One{`foo`, `bar`}
 	Foo := x.Name{`Foo`, one}
 	g := rat.Pack(Foo)
 	g.Print()
 
+	// foo
 	g.Scan(`foobar`).Print()
+	g.Scan(`foobar`).PrintText()
+
+	// bar
 	g.Scan(`barrr`).Print()
+	g.Scan(`barrr`).PrintText()
+
+	// bork
 	g.Scan(`fobar`).Print()
 
 	// Output:
 	// x.Name{"Foo", x.One{"foo", "bar"}}
-	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
-	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barrr"}
-	// {"B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","C":[{"B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}"}],"R":"fobar"}
+	// {"N":"Foo","B":0,"E":3,"R":"foobar"}
+	// foo
+	// {"N":"Foo","B":0,"E":3,"R":"barrr"}
+	// bar
+	// {"N":"Foo","B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","R":"fobar"}
+
+}
+
+func ExamplePack_isfunc() {
+
+	IsPrint := unicode.IsPrint
+
+	g := rat.Pack(IsPrint)
+	g.Print()
+
+	g.Scan(`foo`).PrintText()
+	g.Scan(`foo`).Print()
+
+	g.Scan("\x00foo").Print()
+
+	// Output:
+	// x.Is{IsPrint}
+	// f
+	// {"B":0,"E":1,"R":"foo"}
+	// {"B":0,"E":0,"X":"expected: x.Is{IsPrint}","R":"\x00foo"}
 
 }
 

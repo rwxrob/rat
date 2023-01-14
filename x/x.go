@@ -243,7 +243,11 @@ func (it Rid) Print() { fmt.Println(it) }
 // of runes. The unicode package contains several examples.
 type IsFunc func(r rune) bool
 
-func funcName(it any) string {
+// FuncName returns the best guess at the function name without the
+// package. Note that this is generally only useful when passing named
+// funcitons. This function is called by Is when creating names for
+// Grammar caching.
+func FuncName(it any) string {
 	fp := reflect.ValueOf(it).Pointer()
 	long := runtime.FuncForPC(fp).Name()
 	parts := strings.Split(long, `.`)
@@ -251,8 +255,11 @@ func funcName(it any) string {
 }
 
 // Is takes a single IsFunc argument which must refer to a non-anonymous
-// function. The function is encapsulated within the CheckFunc of the
-// resulting rule.
+// function (see FuncName). The function is encapsulated within the
+// CheckFunc of the resulting rule.
+//
+// Note that creating an explicit Is []any slice is not required. Any
+// named function that matches the IsFunc type will be properly handled.
 //
 // PEGN
 //
@@ -262,21 +269,14 @@ func funcName(it any) string {
 type Is []any
 
 func (it Is) String() string {
-	switch len(it) {
-	case 1:
-		var name string
-		switch v := it[0].(type) {
-		case func(r rune) bool:
-			name = funcName(v)
-		case IsFunc:
-			name = funcName(v)
-		default:
-			return UsageIs
-		}
-		if strings.HasPrefix(name, `func`) {
-			return UsageIs
-		}
-		return `x.Is{` + name + `}`
+	if len(it) != 1 {
+		return UsageIs
+	}
+	switch v := it[0].(type) {
+	case func(r rune) bool:
+		return `x.Is{` + FuncName(v) + `}`
+	case IsFunc:
+		return `x.Is{` + FuncName(v) + `}`
 	default:
 		return UsageIs
 	}

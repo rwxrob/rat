@@ -7,7 +7,17 @@ PEGN, or regular expressions. Passing these types to rat.Pack compiles
 (memoizes) them into a grammar of parsing functions not unlike
 compilation of regular expressions. The string representations of these
 structs consists of entirely of valid, compilable Go code suitable for
-parser code generation for parsers of any type, in any language.
+parser code generation for parsers of any type, in any language. Simply
+printing a Grammar instance to a file is suitable to generate such
+a parser.
+
+Prefer Pack over Make*
+
+Although the individual Make* methods for each of the supported types
+have been exported publicly allowing developers to call them directly
+from within their own Rule implementations, most should use Pack
+instead. Consider it the equivalent of compiling a regular expression.
+
 */
 package rat
 
@@ -15,13 +25,19 @@ import "fmt"
 
 // Pack interprets a sequence of any valid Go types into a Grammar
 // suitable for checking and parsing any UTF-8 input. All arguments
-// passed are assumed to be literals of their string forms except for
-// all the types defined in the x ("expression") subpackage. These have
-// special meaning corresponding to the fundamentals expressions of an
-// PEG or regular expression. Consider these the tokens created by any
-// lexer when processing any meta-language. Any grammar or structured
-// data format that uses UTF-8 encoding can be fully expressed as
-// compilable Go code using this method of interpretation.
+// passed are assumed to rat/x expressions or literal forms (%q). These
+// have special meaning corresponding to the fundamentals expressions of
+// an PEG or regular expression. Consider these the tokens created by
+// any lexer when processing any meta-language. Any grammar or
+// structured data format that uses UTF-8 encoding can be fully
+// expressed as compilable Go code using this method of interpretation.
+//
+// Alternative Call
+//
+// Pack is actually just shorthand equivalent to the following:
+//
+//     g := new(Grammar)
+//     rule := g.MakeRule()
 //
 // Memoization
 //

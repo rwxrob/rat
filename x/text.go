@@ -6,7 +6,7 @@ var (
 	UsageID     = `"%!USAGE: x.ID{id, rule}"`
 	UsageRef    = `"%!USAGE: x.Ref{name}"`
 	UsageRid    = `"%!USAGE: x.Rid{id}"`
-	UsageIs     = `"%!USAGE: x.Is{namedfunc}"`
+	UsageIs     = `"%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"`
 	UsageAny    = `"%!USAGE: x.Any{n} or x.Any{n, m}"`
 	UsageLit    = `"%!USAGE: x.Lit{...any}"`
 	UsageSeq    = `"%!USAGE: x.Seq{...rule}"`

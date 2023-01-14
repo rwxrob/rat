@@ -81,20 +81,31 @@ func (g *Grammar) Scan(in any) Result {
 	return g.Main.Check(runes, 0)
 }
 
-// Pack creates a x.Seq rule from the input and assigns it as the Main
-// rule returning a reference to the updated Grammar itself.
-func (g *Grammar) Pack(seq ...any) *Grammar {
-	xseq := x.Seq(seq)
-	rule := g.MakeRule(xseq)
+// Pack allows multiple rules to be passed (unlike MakeRule). If one
+// argument, returns MakeRule for it. If more than one argument,
+// delegates to MakeSeq. Pack is called from the package function of the
+// same name, which describes the valid argument types. As a convenience,
+// a self-reference is returned.
+func (g *Grammar) Pack(in ...any) *Grammar {
+	var rule *Rule
+	switch len(in) {
+	case 0:
+		panic(ErrArgs{in})
+	case 1:
+		rule = g.MakeRule(in[0])
+	default:
+		rule = g.MakeSeq(x.Seq(in))
+	}
 	g.Main = rule
+	g.AddRule(rule)
 	return g
 }
 
 // MakeRule fulfills the MakeRule interface. The input argument is
-// usually a rat/x ("ratex") expression type. Anything else is
-// interpreted as a literal string by using it's String method or
-// converting it into a string using the %v (string, []rune, []byte,
-// rune) or %q representation.
+// usually a rat/x ("ratex") expression type including x.IsFunc functions.
+// Anything else is interpreted as a literal string by using it's String
+// method or converting it into a string using the %v (string, []rune, []
+// byte, rune) or %q representation.
 func (g *Grammar) MakeRule(in any) *Rule {
 
 	if g.Trace > 0 || Trace > 0 {
@@ -118,6 +129,10 @@ func (g *Grammar) MakeRule(in any) *Rule {
 		return g.MakeRid(v)
 	case x.Is:
 		return g.MakeIs(v)
+	case func(r rune) bool:
+		return g.MakeIs(x.Is{v})
+	case x.IsFunc:
+		return g.MakeIs(x.Is{v})
 	case x.Seq:
 		return g.MakeSeq(v)
 	case x.One:
@@ -214,8 +229,8 @@ func (g *Grammar) MakeName(in x.Name) *Rule {
 	}
 
 	// check the cache for the encapsulated rule, else make one
-	text := x.String(in[1])
-	irule, rulecached := g.Rules[text]
+	ename := x.String(in[1])
+	irule, rulecached := g.Rules[ename]
 	if !rulecached {
 		irule = g.MakeRule(in[1])
 	}
@@ -223,7 +238,12 @@ func (g *Grammar) MakeName(in x.Name) *Rule {
 	rule = new(Rule)
 	rule.Name = name
 	rule.Text = in.String()
-	rule.Check = irule.Check
+
+	rule.Check = func(r []rune, i int) Result {
+		unnamed := irule.Check(r, i)
+		unnamed.N = name
+		return unnamed
+	}
 
 	return g.AddRule(rule)
 }
@@ -244,10 +264,33 @@ func (g *Grammar) MakeRid(in x.Rid) *Rule {
 	// TODO
 	return rule
 }
+
+// MakeIs takes an x.IsFunc (which is just a func(r rune) bool) or x.Is
+// type and calls that function in its Check.
 func (g *Grammar) MakeIs(in x.Is) *Rule {
+
+	if len(in) != 1 {
+		panic(x.UsageIs)
+	}
+
+	isfunc, is := in[0].(func(r rune) bool)
+	if !is {
+		panic(x.UsageIs)
+	}
+
+	name := in.String()
 	rule := new(Rule)
-	// TODO
-	return rule
+	rule.Name = name
+	rule.Text = name
+
+	rule.Check = func(r []rune, i int) Result {
+		if isfunc(r[i]) {
+			return Result{R: r, B: i, E: i + 1}
+		}
+		return Result{R: r, B: i, E: i, X: ErrExpected{in}}
+	}
+
+	return g.AddRule(rule)
 }
 
 func (g *Grammar) MakeSeq(seq x.Seq) *Rule {

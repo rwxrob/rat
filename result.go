@@ -118,6 +118,9 @@ func (m Result) String() string {
 // Print is shortcut for fmt.Println(String).
 func (m Result) Print() { fmt.Println(m) }
 
+// PrintText is short for fmt.Println(m.Text()).
+func (m Result) PrintText() { fmt.Println(m.Text()) }
+
 // Text returns the text between beginning (B) and ending (E)
 // (non-inclusively) It is a shortcut for
 // string(res.R[res.B:res.E]).
