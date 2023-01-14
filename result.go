@@ -121,10 +121,12 @@ func (m Result) Print() { fmt.Println(m) }
 // Text returns the text between beginning (B) and ending (E)
 // (non-inclusively) It is a shortcut for
 // string(res.R[res.B:res.E]).
-func (m Result) Text() string { return string(m.R[m.B:m.E]) }
+func (m Result) Text() string {
+	return string(m.R[m.B:m.E])
+}
 
 // FlatFunc is function that returns a flattened rooted-node tree.
-type FlatFunc func(root Result) Results
+type FlatFunc func(root Result) []Result
 
 // VisitFunc is a first-class function passed one result. Typically
 // these functions will enclose variables, contexts, or a channel
@@ -139,7 +141,7 @@ var DefaultFlatFunc = ByDepth
 
 // ByDepth flattens a rooted node tree of Result structs by
 // traversing in a synchronous, depth-first, preorder way.
-func ByDepth(root Result) Results {
+func ByDepth(root Result) []Result {
 	results := []Result{root}
 	for _, child := range root.C {
 		results = append(results, []Result(ByDepth(child))...)
@@ -149,7 +151,7 @@ func ByDepth(root Result) Results {
 
 // ByLevel flattens a rooted node tree of Result structs by
 // by traversing in a synchronous, breadth-first, leveler way.
-func ByLevel(root Result) Results {
+func ByLevel(root Result) []Result {
 	results := []Result{}
 	// TODO
 	return results
@@ -202,54 +204,12 @@ func WalkDepth(a Result, do VisitFunc) {
 // zero length slice if no results. As a convenience, multiple names may
 // be passed and all matches for each will be grouped together in the
 // order provided. See WalkDefault for details on the algorithm used.
-func (m Result) WithName(names ...string) Results {
+func (m Result) WithName(names ...string) []Result {
 	results := []Result{}
 	Walk(m, func(r Result) {
 		if slices.Contains(names, r.N) {
 			results = append(results, r)
 		}
 	})
-	return Results(results)
+	return results
 }
-
-// FirstWithName returns first hit from WithName or nil if no matches.
-func (m Result) FirstWithName(names ...string) *Result {
-	results := m.WithName(names...)
-	if len(results) == 0 {
-		return nil
-	}
-	return &results[0]
-}
-
-// ------------------------------ Results -----------------------------
-
-// Results is an array of Result structs with an fmt.Stringer and JSON
-// marshaling methods added.
-type Results []Result
-
-// MarshalJSON fulfills the encoding.JSONMarshaler interface by
-// returning a JSON array and never returning an error.
-func (m Results) MarshalJSON() ([]byte, error) {
-	if len(m) == 0 {
-		return []byte(`[]`), nil
-	}
-	str := `[` + m[0].String()
-	for _, result := range m[1:] {
-		str += `,` + result.String()
-	}
-	return []byte(str + `]`), nil
-}
-
-// String fulfills the fmt.Stringer interface as JSON by calling
-// MarshalJSON. If JSON marshaling fails for any reason a "null" string
-// is returned.
-func (m Results) String() string {
-	buf, err := m.MarshalJSON()
-	if err != nil {
-		return "null"
-	}
-	return string(buf)
-}
-
-// Print is shortcut for fmt.Println(String).
-func (m Results) Print() { fmt.Println(m) }

@@ -6,20 +6,20 @@ import "fmt"
 
 type ErrIsZero struct{ V any }
 
-func (e ErrIsZero) Error() string { return fmt.Sprintf(_ErrIsZero, e.V) }
+func (e ErrIsZero) Error() string { return fmt.Sprintf(ErrIsZeroT, e.V) }
 
 // ---------------------------- ErrExpected ---------------------------
 
 type ErrExpected struct{ V any }
 
-func (e ErrExpected) Error() string { return fmt.Sprintf(_ErrExpected, e.V) }
+func (e ErrExpected) Error() string { return fmt.Sprintf(ErrExpectedT, e.V) }
 
 // ------------------------------ ErrArgs -----------------------------
 
 type ErrArgs struct{ any }
 
 func (e ErrArgs) Error() string {
-	return fmt.Sprintf(_ErrArgs, e.any)
+	return fmt.Sprintf(ErrArgsT, e.any)
 }
 
 // ---------------------------- ErrNotFound ---------------------------

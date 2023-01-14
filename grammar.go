@@ -2,6 +2,7 @@ package rat
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"strconv"
 
@@ -17,63 +18,83 @@ var Trace int
 // increments for each new such rule added.
 var DefaultRuleName = `Rule`
 
-// additive only
+// Grammar is an aggregation of cached (memoized) rules with methods to
+// add rules and check data against them. The Main rule is the entry
+// point. Grammars may have multiple unrelated rules added and change
+// the Main entry point dynamically as needed, but most will use the
+// sequence rule created by calling the Pack method or it's rat.Pack
+// equivalent constructor. Trace may be incremented during debugging to
+// gain performant visibility into grammar construction and scanning.
 type Grammar struct {
-	Trace   int
-	names   []string
-	rules   map[string]*Rule
-	rule    *Rule
-	rulenum int
+	Trace   int              // activate logs for debug visibility
+	Rules   map[string]*Rule // keyed to Rule.Name (not Text)
+	Main    *Rule            // entry point for Check or Scan
+	RuleNum int              // auto-incrementing for ever unnamed rule added.
 }
 
-// TODO MarshalJSON - just the meta stuff to help others implement compatible
-// TODO UnmarshalJSON - just the meta stuff with Checks unassigned unset
-
+// String fulfills the fmt.Stringer interface by producing compilable Go
+// code containing the Main rule (usually a rat/x.Seq). In this way,
+// code generators for specific, dynamically created grammars can easily
+// be created.
 func (g Grammar) String() string {
 	var str string
-	if g.rule != nil {
-		str += g.rule.Text
+	if g.Main != nil {
+		str += g.Main.Text
 	}
 	return str
 }
 
 func (g Grammar) Print() { fmt.Println(g) }
 
-// SetScanRule sets the primary entry rule used when g.Scan is called.
-func (g *Grammar) SetScanRule(rule *Rule) *Grammar {
-	g.rule = rule
-	return g
-}
+// Check delegates to g.Main.Check.
+func (g *Grammar) Check(r []rune, i int) Result { return g.Main.Check(r, i) }
 
-// Scan checks the input against the current scan rule (see SetScanRule).
+// Scan checks the input against the current g.Main rule. It is
+// functionally identical to Check but accepts []rune, string, []byte,
+// and io.Reader as input. The error (X) on Result is set if there is
+// a problem.
 func (g *Grammar) Scan(in any) Result {
-	if g.rule == nil {
-		return Result{X: ErrIsZero{g.rule}}
+	if g.Main == nil {
+		return Result{X: ErrIsZero{g.Main}}
 	}
+
 	var runes []rune
 	switch v := in.(type) {
+
 	case string:
 		runes = []rune(v)
+
 	case []byte:
 		runes = []rune(string(v))
+
 	case []rune:
 		runes = v
+
+	case io.Reader:
+		buf, err := io.ReadAll(v)
+		if err != nil {
+			return Result{X: err}
+		}
+		runes = []rune(string(buf))
 	}
-	return g.rule.Check(runes, 0)
+
+	return g.Main.Check(runes, 0)
 }
 
-// Pack is shorthand for g.SetScanRule(g.MakeRule(x.Seq(seq))).
+// Pack creates a x.Seq rule from the input and assigns it as the Main
+// rule returning a reference to the updated Grammar itself.
 func (g *Grammar) Pack(seq ...any) *Grammar {
 	xseq := x.Seq(seq)
 	rule := g.MakeRule(xseq)
-	return g.SetScanRule(rule)
+	g.Main = rule
+	return g
 }
 
 // MakeRule fulfills the MakeRule interface. The input argument is
-// usually a rat/x expression type. Anything else is interpreted as
-// a literal string by converting it into a string using the %v or %q
-// representation. This includes anything that implements the
-// fmt.Stringer interface.
+// usually a rat/x ("ratex") expression type. Anything else is
+// interpreted as a literal string by using it's String method or
+// converting it into a string using the %v (string, []rune, []byte,
+// rune) or %q representation.
 func (g *Grammar) MakeRule(in any) *Rule {
 
 	if g.Trace > 0 || Trace > 0 {
@@ -82,35 +103,62 @@ func (g *Grammar) MakeRule(in any) *Rule {
 
 	switch v := in.(type) {
 
-	// text
-	case string:
-		return g.makeLit(v)
-	case []rune:
-		return g.makeLit(string(v))
-	case []byte:
-		return g.makeLit(string(v))
-	case rune:
-		return g.makeLit(string(v))
+	// text (most common)
+	case string, []rune, []byte, rune, x.Lit:
+		return g.MakeLit(v)
 
-	// rat/x types as expressions
+	// rat/x ("ratex") types as expressions
 	case x.Name:
-		return g.makeName(v)
+		return g.MakeName(v)
+	case x.ID:
+		return g.MakeID(v)
+	case x.Ref:
+		return g.MakeRef(v)
+	case x.Rid:
+		return g.MakeRid(v)
+	case x.Is:
+		return g.MakeIs(v)
 	case x.Seq:
-		return g.makeSeq(v)
+		return g.MakeSeq(v)
+	case x.One:
+		return g.MakeOne(v)
+	case x.Opt:
+		return g.MakeOpt(v)
+	case x.Mn1:
+		return g.MakeMn1(v)
+	case x.Mn0:
+		return g.MakeMn0(v)
+	case x.Min:
+		return g.MakeMin(v)
+	case x.Max:
+		return g.MakeMax(v)
+	case x.Mmx:
+		return g.MakeMmx(v)
+	case x.Rep:
+		return g.MakeRep(v)
+	case x.Pos:
+		return g.MakePos(v)
+	case x.Neg:
+		return g.MakeNeg(v)
 	case x.Any:
-		return g.makeAny(v)
+		return g.MakeAny(v)
+	case x.Toi:
+		return g.MakeToi(v)
+	case x.Tox:
+		return g.MakeTox(v)
+	case x.Rng:
+		return g.MakeRng(v)
+	case x.End:
+		return g.MakeEnd(v)
 
 	case fmt.Stringer:
-		return g.makeLit(v.String())
+		return g.MakeLit(v.String())
 
 	// anything that has an %q form
 	default:
-		return g.makeLit(fmt.Sprintf(`%q`, v))
+		return g.MakeLit(fmt.Sprintf(`%q`, v))
 
 	}
-
-	log.Printf(`unsupported type: %T`, in) // TODO better error
-	return nil
 }
 
 // NewRule creates a new rule in the grammar cache using the defaults.
@@ -135,20 +183,20 @@ func (g *Grammar) NewRule() *Rule {
 // Returns self for convenience.
 func (g *Grammar) AddRule(rule *Rule) *Rule {
 	if rule.ID == 0 {
-		g.rulenum++
-		rule.ID = g.rulenum
+		g.RuleNum++
+		rule.ID = g.RuleNum
 	}
 	if rule.Name == "" {
 		rule.Name = DefaultRuleName + strconv.Itoa(-rule.ID)
 	}
-	if g.rules == nil {
-		g.rules = map[string]*Rule{}
+	if g.Rules == nil {
+		g.Rules = map[string]*Rule{}
 	}
-	g.rules[rule.Name] = rule
+	g.Rules[rule.Name] = rule
 	return rule
 }
 
-func (g *Grammar) makeName(in x.Name) *Rule {
+func (g *Grammar) MakeName(in x.Name) *Rule {
 
 	// syntax check
 	if len(in) != 2 {
@@ -159,33 +207,171 @@ func (g *Grammar) makeName(in x.Name) *Rule {
 		panic(x.UsageName)
 	}
 
-	// check the cache, return if found
-	rule, has := g.rules[name]
+	// check the cache for a rule with this name
+	rule, has := g.Rules[name]
 	if has {
 		return rule
 	}
 
-	rule = g.MakeRule(in[1])
+	// check the cache for the encapsulated rule, else make one
+	text := x.String(in[1])
+	irule, rulecached := g.Rules[text]
+	if !rulecached {
+		irule = g.MakeRule(in[1])
+	}
+
+	rule = new(Rule)
 	rule.Name = name
+	rule.Text = in.String()
+	rule.Check = irule.Check
+
+	return g.AddRule(rule)
+}
+
+func (g *Grammar) MakeID(in x.ID) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeRef(in x.Ref) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeRid(in x.Rid) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeIs(in x.Is) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeSeq(seq x.Seq) *Rule {
+
+	name := seq.String()
+	if r, have := g.Rules[name]; have {
+		return r
+	}
+
+	rule := new(Rule)
+	rule.Name = name
+	rule.Text = name
+
+	rules := []*Rule{}
+
+	for _, it := range seq {
+
+		rule := g.MakeRule(it)
+
+		if rule == nil || rule.Check == nil {
+			log.Printf(`skipping invalid Rule: %v`, rule)
+			continue
+		}
+
+		rules = append(rules, rule)
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		start := i
+		results := []Result{}
+		for _, rule := range rules {
+			result := rule.Check(r, i)
+			i = result.E
+			results = append(results, result)
+			if result.X != nil {
+				return Result{R: r, B: start, E: i, C: results, X: result.X}
+			}
+		}
+		return Result{R: r, B: start, E: i, C: results}
+	}
 
 	return rule
 }
 
-func (g *Grammar) makeLit(in string) *Rule {
-	rule, has := g.rules[in]
+func (g *Grammar) MakeOne(one x.One) *Rule {
+
+	ln := len(one)
+	if ln < 1 {
+		panic(x.UsageOne)
+	}
+
+	name := one.String()
+	if r, have := g.Rules[name]; have {
+		return r
+	}
+
+	// just one is same as rule by itself
+	if ln == 1 {
+		return g.MakeRule(one[0])
+	}
+
+	// create/fetch rules for every possibility to cache and enclose in Check
+	rules := make([]*Rule, ln)
+	for n, exp := range one {
+		rules[n] = g.MakeRule(exp)
+	}
+
+	rule := new(Rule)
+	rule.Name = name
+	rule.Text = name
+
+	rule.Check = func(r []rune, i int) Result {
+		start := i
+		for _, it := range rules {
+			result := it.Check(r, i)
+			if result.X == nil {
+				return result
+			}
+		}
+		return Result{R: r, B: start, E: i, X: ErrExpected{one}}
+	}
+
+	return g.AddRule(rule)
+
+}
+
+func (g *Grammar) MakeOpt(in x.Opt) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeLit(in any) *Rule {
+
+	var val string
+
+	switch v := in.(type) {
+	case string:
+		val = v
+	case []rune:
+		val = string(v)
+	case []byte:
+		val = string(v)
+	case rune:
+		val = string(v)
+	case x.Lit:
+		return g.MakeLit(x.JoinLit(v...))
+
+	}
+
+	rule, has := g.Rules[val]
 	if has {
 		return rule
 	}
 
 	rule = new(Rule)
-	rule.Name = in
-	rule.Text = x.String(in)
+	rule.Name = val
+	rule.Text = x.String(val)
 	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		var err error
 		start := i
-		runes := []rune(in)
+		runes := []rune(val)
 		var n int
 		runeslen := len(runes)
 		for i < len(r) && n < runeslen {
@@ -205,10 +391,56 @@ func (g *Grammar) makeLit(in string) *Rule {
 	return rule
 }
 
-func (g *Grammar) makeAny(in x.Any) *Rule {
+func (g *Grammar) MakeMn1(in x.Mn1) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeMn0(in x.Mn0) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeMin(in x.Min) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeMax(in x.Max) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeMmx(in x.Mmx) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeRep(in x.Rep) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakePos(in x.Pos) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeNeg(in x.Neg) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+
+func (g *Grammar) MakeAny(in x.Any) *Rule {
 
 	name := in.String()
-	if r, have := g.rules[name]; have {
+	if r, have := g.Rules[name]; have {
 		return r
 	}
 
@@ -279,48 +511,35 @@ func (g *Grammar) makeAnyMmx(in x.Any) *Rule {
 		}
 
 		// we have enough for max
-		if i+n > len(r) {
-			return Result{R: r, B: start, E: i + m}
+		if i+n < len(r) {
+			return Result{R: r, B: start, E: i + n}
 		}
 
 		// we have less than max, but more than min
-		return Result{R: r, B: start, E: len(r) - 1}
+		return Result{R: r, B: start, E: len(r)}
 	}
 
 	return rule
 
 }
 
-func (g *Grammar) makeSeq(seq x.Seq) *Rule {
-
-	rule := g.NewRule()
-
-	rules := []*Rule{}
-	for _, it := range seq {
-
-		rule := g.MakeRule(it)
-
-		if rule == nil || rule.Check == nil {
-			log.Printf(`skipping invalid Rule: %v`, rule)
-			continue
-		}
-
-		rules = append(rules, rule)
-	}
-
-	rule.Check = func(r []rune, i int) Result {
-		start := i
-		results := []Result{}
-		for _, rule := range rules {
-			result := rule.Check(r, i)
-			i = result.E
-			results = append(results, result)
-			if result.X != nil {
-				return Result{R: r, B: start, E: i, C: results, X: result.X}
-			}
-		}
-		return Result{R: r, B: start, E: i, C: results}
-	}
-
+func (g *Grammar) MakeToi(in x.Toi) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeTox(in x.Tox) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeRng(in x.Rng) *Rule {
+	rule := new(Rule)
+	// TODO
+	return rule
+}
+func (g *Grammar) MakeEnd(in x.End) *Rule {
+	rule := new(Rule)
+	// TODO
 	return rule
 }

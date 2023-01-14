@@ -110,7 +110,18 @@ func String(it any) string {
 	}
 }
 
-// ------------------------------- Name -------------------------------
+// JoinLit takes the string form of each argument (by passing to String)
+// and joins them removing any quotation marks. Assumes types passed are
+// literals that String would return as quoted. Does not work for other
+// rat/x expressions.
+func JoinLit(args ...any) string {
+	var str string
+	for _, it := range args {
+		buf := String(it)
+		str += buf[1 : len(buf)-1]
+	}
+	return str
+}
 
 // Name encapsulates another rule with a name. In PEGN these are called
 // "significant" because they can be easily found in the parsed results
@@ -121,6 +132,19 @@ func String(it any) string {
 // name. The name appears in the results output JSON if set (see
 // rat.Result). When output space is a concern, consider using the ID/Rid
 // rules instead. Generally, mixing Name and ID types is discouraged.
+//
+// Note that both the encapsulated rule and the new rule are both cached
+// using different Name and Text values but the same Check function. The
+// encapsulated rule uses whatever the default name for that type of
+// rule is, the new named rule uses the specific name. Depending on the
+// default name of the encapsulated rule (for example a Seq can get
+// quite long) giving them a name could decrease lookup time for cache
+// checks. The grammar rule cache is checked first for the encapsulated
+// rule and that is used if it already exists, otherwise a new rule is
+// created and cached for the encapsulated rule as well.
+//
+// Also note that both the encapsulated rule and the named rule use the
+// exact same closure function.
 //
 // PEGN
 //
@@ -140,8 +164,6 @@ func (it Name) String() string {
 }
 
 func (it Name) Print() { fmt.Println(it) }
-
-// -------------------------------- ID --------------------------------
 
 // ID encapsulates another rule with a integer identifier. This is
 // functionally the same as a Name but saves space in the results output
@@ -172,8 +194,6 @@ func (it ID) String() string {
 
 func (it ID) Print() { fmt.Println(it) }
 
-// -------------------------------- Ref -------------------------------
-
 // Ref refers to another rule by name. This prevents having to assign
 // rules to variables and use them in subsequent rules.
 //
@@ -199,8 +219,6 @@ func (args Ref) String() string {
 
 func (it Ref) Print() { fmt.Println(it) }
 
-// -------------------------------- Rid -------------------------------
-
 // Rid refers to another rule by ID. This prevents having to assign
 // rules to variables and use them in subsequent rules.
 //
@@ -221,7 +239,9 @@ func (args Rid) String() string {
 
 func (it Rid) Print() { fmt.Println(it) }
 
-// -------------------------------- Is --------------------------------
+// IsFunc functions return true if the passed rune is contained in a set
+// of runes. The unicode package contains several examples.
+type IsFunc func(r rune) bool
 
 func funcName(it any) string {
 	fp := reflect.ValueOf(it).Pointer()
@@ -229,10 +249,6 @@ func funcName(it any) string {
 	parts := strings.Split(long, `.`)
 	return parts[len(parts)-1]
 }
-
-// IsFunc functions return true if the passed rune is contained in a set
-// of runes. The unicode package contains several examples.
-type IsFunc func(r rune) bool
 
 // Is takes a single IsFunc argument which must refer to a non-anonymous
 // function. The function is encapsulated within the CheckFunc of the
@@ -267,8 +283,6 @@ func (it Is) String() string {
 }
 
 func (it Is) Print() { fmt.Println(it) }
-
-// -------------------------------- Seq -------------------------------
 
 // Seq represents a sequence of expressions. One represents one of
 // a set of possible matching rules. If more than one value assume
@@ -315,8 +329,6 @@ func (rules Seq) String() string {
 
 func (rules Seq) Print() { fmt.Println(rules) }
 
-// -------------------------------- One -------------------------------
-
 // One represents one of a set of possible matching rules. If more than
 // one value assume combined values are an array of []any. If only
 // a single value and that value is an []any slice assume each value are
@@ -347,8 +359,6 @@ func (rules One) String() string {
 
 func (rules One) Print() { fmt.Println(rules) }
 
-// -------------------------------- Opt -------------------------------
-
 // Opt represents a single optional rule.
 //
 // PEGN
@@ -365,8 +375,6 @@ func (it Opt) String() string {
 }
 
 func (rules Opt) Print() { fmt.Println(rules) }
-
-// -------------------------------- Lit -------------------------------
 
 // Lit represents any literal and allows combining literals from any
 // other type into a single rule (see String). This is useful when
@@ -390,34 +398,22 @@ func (rules Lit) String() string {
 		return UsageLit
 
 	case 1:
-		it, isslice := rules[0].([]any)
-		if !isslice {
+		it, is := rules[0].([]any)
+		if !is {
 			return String(rules[0])
 		}
 		if len(it) == 0 {
 			return UsageLit
 		}
-		var str string
-		for _, rule := range it {
-			it := String(rule)
-			str += it[1 : len(it)-1]
-		}
-		return `"` + str + `"`
+		return `"` + JoinLit(it...) + `"`
 
 	default:
-		var str string
-		for _, rule := range rules {
-			it := String(rule)
-			str += it[1 : len(it)-1]
-		}
-		return `"` + str + `"`
+		return `"` + JoinLit(rules...) + `"`
 	}
 
 }
 
 func (s Lit) Print() { fmt.Println(s) }
-
-// -------------------------------- Mn1 -------------------------------
 
 // Mn1 represents one or more of a single rule. If the first
 // and only value is an []any slice assume it is to be expanded
@@ -438,8 +434,6 @@ func (it Mn1) String() string {
 
 func (it Mn1) Print() { fmt.Println(it) }
 
-// -------------------------------- Mn0 -------------------------------
-
 // Mn0 represents zero or more of a single rule.
 //
 // PEGN
@@ -456,8 +450,6 @@ func (it Mn0) String() string {
 }
 
 func (it Mn0) Print() { fmt.Println(it) }
-
-// -------------------------------- Min -------------------------------
 
 // Min represents a minimum number (n) of a single rule.
 //
@@ -479,8 +471,6 @@ func (it Min) String() string {
 
 func (it Min) Print() { fmt.Println(it) }
 
-// -------------------------------- Max -------------------------------
-
 // Max represents a maximum number (n) of a single rule. Minimum is
 // assumed to be zero.
 //
@@ -501,8 +491,6 @@ func (it Max) String() string {
 }
 
 func (it Max) Print() { fmt.Println(it) }
-
-// -------------------------------- Mmx -------------------------------
 
 // Mmx represents a minimum and maximum number (n) of a single rule.
 //
@@ -527,8 +515,6 @@ func (it Mmx) String() string {
 
 func (it Mmx) Print() { fmt.Println(it) }
 
-// -------------------------------- Rep -------------------------------
-
 // Rep represents a minimum and maximum number (n) of a single rule.
 //
 // PEGN
@@ -549,8 +535,6 @@ func (it Rep) String() string {
 
 func (it Rep) Print() { fmt.Println(it) }
 
-// -------------------------------- Pos -------------------------------
-
 // Pos represents a positive lookahead assertion. The end of the result
 // is always unchanged, but an error set if rule assertion fails.
 //
@@ -569,8 +553,6 @@ func (it Pos) String() string {
 
 func (it Pos) Print() { fmt.Println(it) }
 
-// -------------------------------- Neg -------------------------------
-
 // Neg represents a negative lookahead assertion. The end of the result
 // is always unchanged, but an error set if the rule assertion is true.
 //
@@ -588,8 +570,6 @@ func (it Neg) String() string {
 }
 
 func (it Neg) Print() { fmt.Println(it) }
-
-// -------------------------------- Any -------------------------------
 
 // Any represents a specific number of any valid rune. If more than one
 // argument, then first is minimum and second maximum. If the maximum
@@ -627,8 +607,6 @@ func (it Any) String() string {
 
 func (it Any) Print() { fmt.Println(it) }
 
-// -------------------------------- Toi -------------------------------
-
 // Toi represents any rune up to and including the specified rule.
 //
 // PEGN
@@ -646,8 +624,6 @@ func (it Toi) String() string {
 
 func (it Toi) Print() { fmt.Println(it) }
 
-// -------------------------------- Tox -------------------------------
-
 // Tox represents any rune up to the specified rule, but excluding it.
 //
 // PEGN
@@ -664,8 +640,6 @@ func (it Tox) String() string {
 }
 
 func (it Tox) Print() { fmt.Println(it) }
-
-// -------------------------------- Rng -------------------------------
 
 // Rng represents an inclusive range between any two valid runes.
 //
@@ -689,8 +663,6 @@ func (it Rng) String() string {
 }
 
 func (it Rng) Print() { fmt.Println(it) }
-
-// -------------------------------- End -------------------------------
 
 // End represents the end of data, that there are no more runes to
 // examine.

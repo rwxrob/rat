@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rwxrob/rat"
+	"github.com/rwxrob/rat/x"
 )
 
 func ExampleFlatFunc_ByDepth() {
@@ -12,11 +13,11 @@ func ExampleFlatFunc_ByDepth() {
 	r2 := r1
 	r1a := rat.Result{N: `r1a`, B: 1, E: 2}
 	r1b := rat.Result{N: `r1b`, B: 2, E: 3}
-	r1.C = rat.Results{r1a, r1b}
+	r1.C = []rat.Result{r1a, r1b}
 	r2.N = `r2`
 
 	root := rat.Result{
-		N: `Root`, B: 1, E: 3, C: rat.Results{r1, r2},
+		N: `Root`, B: 1, E: 3, C: []rat.Result{r1, r2},
 	}
 
 	for _, result := range rat.ByDepth(root) {
@@ -38,15 +39,15 @@ func ExampleResult_WithName() {
 	r1 := rat.Result{N: `r1`, B: 1, E: 3}
 	r2 := r1
 	r1a := rat.Result{N: `r1a`, B: 1, E: 2}
-	r1b := rat.Result{N: `r1b`, B: 2, E: 3, C: rat.Results{foo}}
+	r1b := rat.Result{N: `r1b`, B: 2, E: 3, C: []rat.Result{foo}}
 	foo.I = 2
-	r1.C = rat.Results{r1a, r1b}
+	r1.C = []rat.Result{r1a, r1b}
 	r2.N = `r2`
-	r2.C = rat.Results{foo}
+	r2.C = []rat.Result{foo}
 	foo.I = 3
 
 	root := rat.Result{
-		N: `Root`, B: 1, E: 3, C: rat.Results{r1, r2, foo},
+		N: `Root`, B: 1, E: 3, C: []rat.Result{r1, r2, foo},
 	}
 
 	for _, result := range root.WithName(`foo`) {
@@ -57,6 +58,25 @@ func ExampleResult_WithName() {
 	// {"N":"foo","I":1,"B":2,"E":3}
 	// {"N":"foo","I":2,"B":2,"E":3}
 	// {"N":"foo","I":3,"B":2,"E":3}
+
+}
+
+func ExamplePack_name() {
+
+	one := x.One{`foo`, `bar`}
+	Foo := x.Name{`Foo`, one}
+	g := rat.Pack(Foo)
+	g.Print()
+
+	g.Scan(`foobar`).Print()
+	g.Scan(`barrr`).Print()
+	g.Scan(`fobar`).Print()
+
+	// Output:
+	// x.Name{"Foo", x.One{"foo", "bar"}}
+	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
+	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barrr"}
+	// {"B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","C":[{"B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}"}],"R":"fobar"}
 
 }
 
@@ -112,3 +132,54 @@ func ExamplePack_ref() {
 	// some
 }
 */
+
+func ExampleMakeAny() {
+
+	g := new(rat.Grammar)
+	rule := g.MakeAny(x.Any{3})
+	rule.Check([]rune(`..`), 0).Print()
+	rule.Check([]rune(`...`), 0).Print()
+	rule.Check([]rune(`....`), 0).Print()
+	rule.Check([]rune(`....`), 2).Print()
+	fmt.Println(g.Rules[`x.Any{3}`].Name)
+	fmt.Println(g.Rules[`x.Any{3}`].Text)
+
+	//Output:
+	// {"B":0,"E":1,"X":"expected: x.Any{3}","R":".."}
+	// {"B":0,"E":3,"R":"..."}
+	// {"B":0,"E":3,"R":"...."}
+	// {"B":2,"E":3,"X":"expected: x.Any{3}","R":"...."}
+	// x.Any{3}
+	// x.Any{3}
+
+}
+
+func ExampleMakeLit() {
+
+	g := new(rat.Grammar)
+	foo := g.MakeLit(`foo`)
+	oo := g.MakeLit(`oo`)
+	foo.Check([]rune(`foo`), 0).Print()
+	foo.Check([]rune(`fooo`), 0).Print()
+	foo.Check([]rune(`fo`), 0).Print()
+	oo.Check([]rune(`fooo`), 0).Print()
+	oo.Check([]rune(`fooo`), 1).Print()
+	oo.Check([]rune(`fooo`), 2).Print()
+	fmt.Println(g.Rules[`foo`].Name)
+	fmt.Println(g.Rules[`foo`].Text)
+	fmt.Println(g.Rules[`oo`].Name)
+	fmt.Println(g.Rules[`oo`].Text)
+
+	//Output:
+	// {"B":0,"E":3,"R":"foo"}
+	// {"B":0,"E":3,"R":"fooo"}
+	// {"B":0,"E":2,"X":"expected: o","R":"fo"}
+	// {"B":0,"E":0,"X":"expected: o","R":"fooo"}
+	// {"B":1,"E":3,"R":"fooo"}
+	// {"B":2,"E":4,"R":"fooo"}
+	// foo
+	// "foo"
+	// oo
+	// "oo"
+
+}
