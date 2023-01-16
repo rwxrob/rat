@@ -116,6 +116,12 @@ func String(it any) string {
 	case bool:
 		return fmt.Sprintf(`"%v"`, v)
 
+	case func(r rune) bool:
+		return FuncName(v)
+
+	case IsFunc:
+		return FuncName(v)
+
 	default:
 		return fmt.Sprintf(`"%v"`, v)
 
