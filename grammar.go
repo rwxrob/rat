@@ -25,6 +25,15 @@ var DefaultRuleName = `Rule`
 // sequence rule created by calling the Pack method or it's rat.Pack
 // equivalent constructor. Trace may be incremented during debugging to
 // gain performant visibility into grammar construction and scanning.
+//
+// Memoization
+//
+// All Make* methods check the Rules map/cache for a match for the
+// String form of the rat/x expression and return it directly if found
+// rather than create a new Rule with an identical CheckFunc. The
+// MakeNamed creates an additional entry (pointing to the same *Rule)
+// for the specified name.
+//
 type Grammar struct {
 	Trace   int              // activate logs for debug visibility
 	Rules   map[string]*Rule // keyed to Rule.Name (not Text)
@@ -105,7 +114,9 @@ func (g *Grammar) Pack(in ...any) *Grammar {
 // usually a rat/x ("ratex") expression type including x.IsFunc functions.
 // Anything else is interpreted as a literal string by using it's String
 // method or converting it into a string using the %v (string, []rune, []
-// byte, rune) or %q representation.
+// byte, rune) or %q representation. Note that MakeRule does not
+// check the Rules cache for existing Rules. This is done in the other
+// Make* methods.
 func (g *Grammar) MakeRule(in any) *Rule {
 
 	if g.Trace > 0 || Trace > 0 {
@@ -120,7 +131,7 @@ func (g *Grammar) MakeRule(in any) *Rule {
 
 	// rat/x ("ratex") types as expressions
 	case x.Name:
-		return g.MakeName(v)
+		return g.MakeNamed(v)
 	case x.ID:
 		return g.MakeID(v)
 	case x.Ref:
@@ -178,7 +189,7 @@ func (g *Grammar) MakeRule(in any) *Rule {
 
 // NewRule creates a new rule in the grammar cache using the defaults.
 // It is a convenience when the Name and ID are not needed. See AddRule
-// for details.
+// for details. Prefer GetOrNew in general.
 func (g *Grammar) NewRule() *Rule {
 	rule := new(Rule)
 	g.AddRule(rule)
@@ -211,18 +222,18 @@ func (g *Grammar) AddRule(rule *Rule) *Rule {
 	return rule
 }
 
-func (g *Grammar) MakeName(in x.Name) *Rule {
+// MakeNamed add a Name to the Result that is returned.
+func (g *Grammar) MakeNamed(in x.Name) *Rule {
 
-	// syntax check
 	if len(in) != 2 {
 		panic(x.UsageName)
 	}
+
 	name, isstring := in[0].(string)
 	if !isstring {
 		panic(x.UsageName)
 	}
 
-	// check the cache for a rule with this name
 	rule, has := g.Rules[name]
 	if has {
 		return rule
@@ -235,9 +246,7 @@ func (g *Grammar) MakeName(in x.Name) *Rule {
 		irule = g.MakeRule(in[1])
 	}
 
-	rule = new(Rule)
-	rule.Name = name
-	rule.Text = in.String()
+	rule = &Rule{Name: name, Text: in.String()}
 
 	rule.Check = func(r []rune, i int) Result {
 		unnamed := irule.Check(r, i)
@@ -279,12 +288,16 @@ func (g *Grammar) MakeIs(in x.Is) *Rule {
 	}
 
 	name := in.String()
-	rule := new(Rule)
-	rule.Name = name
-	rule.Text = name
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
 
 	rule.Check = func(r []rune, i int) Result {
-		if isfunc(r[i]) {
+		if i < len(r) && isfunc(r[i]) {
 			return Result{R: r, B: i, E: i + 1}
 		}
 		return Result{R: r, B: i, E: i, X: ErrExpected{in}}
@@ -296,39 +309,41 @@ func (g *Grammar) MakeIs(in x.Is) *Rule {
 func (g *Grammar) MakeSeq(seq x.Seq) *Rule {
 
 	name := seq.String()
-	if r, have := g.Rules[name]; have {
-		return r
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
 	}
 
-	rule := new(Rule)
-	rule.Name = name
-	rule.Text = name
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
 
 	rules := []*Rule{}
 
 	for _, it := range seq {
 
-		rule := g.MakeRule(it)
-
-		if rule == nil || rule.Check == nil {
-			log.Printf(`skipping invalid Rule: %v`, rule)
-			continue
+		iname := x.String(it)
+		irule, has := g.Rules[iname]
+		if !has {
+			irule = g.MakeRule(it)
 		}
 
-		rules = append(rules, rule)
+		rules = append(rules, irule)
 	}
 
 	rule.Check = func(r []rune, i int) Result {
 		start := i
 		results := []Result{}
+
 		for _, rule := range rules {
-			result := rule.Check(r, i)
-			i = result.E
-			results = append(results, result)
-			if result.X != nil {
-				return Result{R: r, B: start, E: i, C: results, X: result.X}
+			res := rule.Check(r, i)
+			i = res.E
+			results = append(results, res)
+			if res.X != nil {
+				return Result{R: r, B: start, E: i, C: results, X: res.X}
 			}
 		}
+
 		return Result{R: r, B: start, E: i, C: results}
 	}
 
@@ -337,14 +352,19 @@ func (g *Grammar) MakeSeq(seq x.Seq) *Rule {
 
 func (g *Grammar) MakeOne(one x.One) *Rule {
 
+	name := one.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
 	ln := len(one)
 	if ln < 1 {
 		panic(x.UsageOne)
-	}
-
-	name := one.String()
-	if r, have := g.Rules[name]; have {
-		return r
 	}
 
 	// just one is same as rule by itself
@@ -355,31 +375,62 @@ func (g *Grammar) MakeOne(one x.One) *Rule {
 	// create/fetch rules for every possibility to cache and enclose in Check
 	rules := make([]*Rule, ln)
 	for n, exp := range one {
-		rules[n] = g.MakeRule(exp)
+		name := x.String(exp)
+		irule, has := g.Rules[name]
+		if !has {
+			irule = g.MakeRule(exp)
+			g.AddRule(irule)
+		}
+		rules[n] = irule
 	}
 
-	rule := new(Rule)
-	rule.Name = name
-	rule.Text = name
-
 	rule.Check = func(r []rune, i int) Result {
-		start := i
+		result := Result{R: r, B: i, E: i}
 		for _, it := range rules {
-			result := it.Check(r, i)
-			if result.X == nil {
+			res := it.Check(r, i)
+			if res.X == nil {
+				result.E = res.E
+				result.C = []Result{res}
 				return result
 			}
 		}
-		return Result{R: r, B: start, E: i, X: ErrExpected{one}}
+		result.X = ErrExpected{one}
+		return result
 	}
 
-	return g.AddRule(rule)
+	return rule
 
 }
 
 func (g *Grammar) MakeOpt(in x.Opt) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageOpt)
+	}
+
+	iname := x.String(in[0])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[0])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i}
+		res := irule.Check(r, i)
+		result.E = res.E
+		return result // always succeeds
+	}
+
 	return rule
 }
 
@@ -406,9 +457,7 @@ func (g *Grammar) MakeLit(in any) *Rule {
 		return rule
 	}
 
-	rule = new(Rule)
-	rule.Name = val
-	rule.Text = x.String(val)
+	rule = &Rule{Name: val, Text: x.String(val)}
 	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
@@ -466,6 +515,9 @@ func (g *Grammar) MakeMmx(in x.Mmx) *Rule {
 		return rule
 	}
 
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
 	if len(in) != 3 {
 		panic(x.UsageMmx)
 	}
@@ -480,12 +532,11 @@ func (g *Grammar) MakeMmx(in x.Mmx) *Rule {
 		panic(x.UsageMmx)
 	}
 
-	irule := g.MakeRule(in[2])
-
-	rule = new(Rule)
-	rule.Name = name
-	rule.Text = name
-	g.AddRule(rule)
+	iname := x.String(in[2])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[2])
+	}
 
 	rule.Check = func(r []rune, i int) Result {
 		result := Result{R: r, B: i, E: i, C: []Result{}}
@@ -516,8 +567,52 @@ func (g *Grammar) MakeMmx(in x.Mmx) *Rule {
 }
 
 func (g *Grammar) MakeRep(in x.Rep) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 2 {
+		panic(x.UsageRep)
+	}
+
+	n, is := in[0].(int)
+	if !is {
+		panic(x.UsageRep)
+	}
+
+	iname := x.String(in[1])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[1])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i, C: []Result{}}
+		var res Result
+		var count int
+		for count < n {
+			res = irule.Check(r, i)
+			result.E = res.E
+			i = res.E
+			if res.X != nil {
+				break
+			}
+			result.C = append(result.C, res)
+			count++
+		}
+		if count != n {
+			result.X = ErrExpected{in}
+		}
+		return result
+	}
+
 	return rule
 }
 
@@ -633,8 +728,24 @@ func (g *Grammar) MakeRng(in x.Rng) *Rule {
 	// TODO
 	return rule
 }
+
 func (g *Grammar) MakeEnd(in x.End) *Rule {
+
+	if len(in) != 0 {
+		panic(x.UsageEnd)
+	}
+
+	name := in.String()
 	rule := new(Rule)
-	// TODO
-	return rule
+	rule.Name = name
+	rule.Text = name
+
+	rule.Check = func(r []rune, i int) Result {
+		if i == len(r) {
+			return Result{R: r, B: i, E: i}
+		}
+		return Result{R: r, B: i, E: i, X: ErrExpected{in}}
+	}
+
+	return g.AddRule(rule)
 }

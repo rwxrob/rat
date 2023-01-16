@@ -141,7 +141,7 @@ func JoinLit(args ...any) string {
 	return str
 }
 
-// Name encapsulates another rule with a name. In PEGN these are called
+// Name encapsulates another Result with a name. In PEGN these are called
 // "significant" because they can be easily found in the parsed results
 // tree. Names can be any valid Go string but keeping to non-whitespace
 // UTF-8 runes is strongly recommended (and required for rendering to
@@ -150,6 +150,9 @@ func JoinLit(args ...any) string {
 // name. The name appears in the results output JSON if set (see
 // rat.Result). When output space is a concern, consider using the ID/Rid
 // rules instead. Generally, mixing Name and ID types is discouraged.
+//
+// The result contains a single un-named child result that is identical
+// to the named result for consistency with other multiple result rules.
 //
 // Note that both the encapsulated rule and the new rule are both cached
 // using different Name and Text values but the same Check function. The
@@ -166,8 +169,8 @@ func JoinLit(args ...any) string {
 //
 // PEGN
 //
-//    Foo <-- rule
-//    Bar <-- Foo{2}
+//    Foo <= rule
+//    Bar <= Foo{2}
 //
 type Name []any
 
@@ -377,7 +380,8 @@ func (rules One) String() string {
 
 func (rules One) Print() { fmt.Println(rules) }
 
-// Opt represents a single optional rule.
+// Opt represents a single optional rule. Note that the result never
+// fails, only advances on success.
 //
 // PEGN
 //
@@ -685,7 +689,8 @@ func (it Rng) String() string {
 func (it Rng) Print() { fmt.Println(it) }
 
 // End represents the end of data, that there are no more runes to
-// examine.
+// examine. End must be an empty []any slice for consistency and to
+// allow a String representation method to be attached.
 //
 // PEGN
 //
@@ -694,6 +699,9 @@ func (it Rng) Print() { fmt.Println(it) }
 type End []any
 
 func (it End) String() string {
+	if len(it) > 0 {
+		return (UsageEnd)
+	}
 	if len(it) != 0 {
 		return UsageEnd
 	}

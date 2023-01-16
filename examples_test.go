@@ -62,6 +62,29 @@ func ExampleResult_WithName() {
 
 }
 
+func ExamplePack_one() {
+
+	g := rat.Pack(x.One{`foo`, `bar`})
+	g.Print()
+
+	g.Scan(`foobar`).PrintText()
+	g.Scan(`foobar`).Print()
+
+	g.Scan(`barfoo`).PrintText()
+	g.Scan(`barfoo`).Print()
+
+	g.Scan(`baz`).Print()
+
+	// Output:
+	// x.One{"foo", "bar"}
+	// foo
+	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
+	// bar
+	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barfoo"}
+	// {"B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","R":"baz"}
+
+}
+
 func ExamplePack_one_Named() {
 
 	one := x.One{`foo`, `bar`}
@@ -82,9 +105,9 @@ func ExamplePack_one_Named() {
 
 	// Output:
 	// x.Name{"Foo", x.One{"foo", "bar"}}
-	// {"N":"Foo","B":0,"E":3,"R":"foobar"}
+	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
 	// foo
-	// {"N":"Foo","B":0,"E":3,"R":"barrr"}
+	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barrr"}
 	// bar
 	// {"N":"Foo","B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","R":"fobar"}
 
@@ -140,6 +163,62 @@ func ExamplePack_mmx() {
 	// foofoofoo
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
 	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, \"foo\"}","R":"barfoofoo"}
+
+}
+
+func ExamplePack_end() {
+
+	g := rat.Pack(x.Any{2}, x.End{})
+	g.Print()
+
+	g.Scan(`fo`).PrintText()
+	g.Scan(`fo`).Print()
+
+	g.Scan(`foo`).Print()
+
+	// Output:
+	// x.Seq{x.Any{2}, x.End{}}
+	// fo
+	// {"B":0,"E":2,"C":[{"B":0,"E":2},{"B":2,"E":2}],"R":"fo"}
+	// {"B":0,"E":2,"X":"expected: x.End{}","C":[{"B":0,"E":2},{"B":2,"E":2,"X":"expected: x.End{}"}],"R":"foo"}
+
+}
+
+func ExamplePack_opt() {
+
+	g := rat.Pack(x.Opt{`foo`})
+	g.Print()
+
+	g.Scan(`foo`).PrintText()
+	g.Scan(`foo`).Print()
+
+	g.Scan(`bar`).PrintText()
+	g.Scan(`bar`).Print()
+
+	// Output:
+	// x.Opt{"foo"}
+	// foo
+	// {"B":0,"E":3,"R":"foo"}
+	//
+	// {"B":0,"E":0,"R":"bar"}
+
+}
+
+func ExamplePack_rep() {
+
+	g := rat.Pack(x.Rep{2, `foo`})
+	g.Print()
+
+	g.Scan(`foofoofoo`).PrintText()
+	g.Scan(`foofoofoo`).Print()
+
+	g.Scan(`foobar`).Print()
+
+	// Output:
+	// x.Rep{2, "foo"}
+	// foofoo
+	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
+	// {"B":0,"E":3,"X":"expected: x.Rep{2, \"foo\"}","C":[{"B":0,"E":3}],"R":"foobar"}
 
 }
 
