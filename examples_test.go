@@ -110,6 +110,39 @@ func ExamplePack_isfunc() {
 
 }
 
+func ExamplePack_mmx() {
+
+	g := rat.Pack(x.Mmx{1, 3, `foo`})
+	g.Print()
+
+	g.Scan(`foo`).PrintText()
+	g.Scan(`foo`).Print()
+
+	g.Scan(`foofoo`).PrintText()
+	g.Scan(`foofoo`).Print()
+
+	g.Scan(`foofoofoo`).PrintText()
+	g.Scan(`foofoofoo`).Print()
+
+	g.Scan(`foofoofoofoo`).PrintText()
+	g.Scan(`foofoofoofoo`).Print()
+
+	g.Scan(`barfoofoo`).Print()
+
+	// Output:
+	// x.Mmx{1, 3, "foo"}
+	// foo
+	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
+	// foofoo
+	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
+	// foofoofoo
+	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
+	// foofoofoo
+	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
+	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, \"foo\"}","R":"barfoofoo"}
+
+}
+
 /*
 func ExampleRule() {
 

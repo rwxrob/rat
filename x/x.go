@@ -41,6 +41,18 @@ that is shorthand for fmt.Println(self).
 
 See the documentation for each type for a details on syntax. Also see the included Examples.
 
+Greedy matching
+
+All checks are greedy (like PEG/PEGN). This means the longest possible progression is always returned as the result.
+
+Errors included
+
+Every rule in this package (and accompanying CheckFunc) always includes every sub-rule (child) within the results even if it fails (producing a Result.X). The error of the final sub-rule is set to the error for the parent as well.
+
+First error stops
+
+All rules stop evaluating when the first result with an error is detected (no inherent attempt to recover).
+
 */
 package x
 
@@ -492,7 +504,9 @@ func (it Max) String() string {
 
 func (it Max) Print() { fmt.Println(it) }
 
-// Mmx represents a minimum and maximum number (n) of a single rule.
+// Mmx represents a minimum (m) and maximum number (n) of a single rule.
+// The minimum must be greater than zero. The maximum must be greater
+// than the minimum.
 //
 // PEGN
 //

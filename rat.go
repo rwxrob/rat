@@ -101,6 +101,14 @@ func (r Rule) Print() { fmt.Println(r) }
 // recovery and specific user-facing error messages while promoting
 // succinct rule development.
 //
+// When a CheckFunc is composed of multiple sub-rules, each MUST be
+// added to the Result.C (children) slice including any that generated
+// errors. Some functions may opt to continue even if the result
+// contained an error allowing recovery. Usually, however, a CheckFunc
+// should stop on the first error and include it with the children.
+// Usually, a CheckFunc should also set its error Result.X to that of
+// the final Result that failed.
+//
 type CheckFunc func(r []rune, i int) Result
 
 // IsFunc functions return true if the passed rune is contained in a set

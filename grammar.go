@@ -458,8 +458,60 @@ func (g *Grammar) MakeMax(in x.Max) *Rule {
 }
 
 func (g *Grammar) MakeMmx(in x.Mmx) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	if len(in) != 3 {
+		panic(x.UsageMmx)
+	}
+
+	min, is := in[0].(int)
+	if !is || min <= 0 {
+		panic(x.UsageMmx)
+	}
+
+	max, is := in[1].(int)
+	if !is || max <= min {
+		panic(x.UsageMmx)
+	}
+
+	irule := g.MakeRule(in[2])
+
+	rule = new(Rule)
+	rule.Name = name
+	rule.Text = name
+	g.AddRule(rule)
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i, C: []Result{}}
+		var count int
+		var res Result
+		for {
+			res = irule.Check(r, i)
+			if res.X != nil || count == max {
+				break
+			}
+			result.C = append(result.C, res)
+			i = res.E
+			result.E = i
+			count++
+		}
+
+		if min <= count && count <= max {
+			if res.X == nil {
+				result.C = append(result.C, res)
+			}
+			return result
+		}
+		result.X = ErrExpected{in}
+		return result
+	}
+
 	return rule
 }
 
