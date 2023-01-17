@@ -17,9 +17,7 @@ types are used incorrectly the string representation contains the
 that is shorthand for fmt.Println(self).
 
     Name - Foo <- rule or <:Foo rule >
-    ID   - use integer instead of string name to save output space
     Ref  - reference another rule by Name
-    Rid  - reference another rule by ID
     Is   - boolean class function
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
@@ -141,18 +139,20 @@ func JoinLit(args ...any) string {
 	return str
 }
 
-// Name encapsulates another Result with a name. In PEGN these are called
-// "significant" because they can be easily found in the parsed results
-// tree. Names can be any valid Go string but keeping to non-whitespace
-// UTF-8 runes is strongly recommended (and required for rendering to
-// PEG/PEGN). The first argument must be the unique name of the rule to
-// encapsulate. The second argument is the rule to associate with the
-// name. The name appears in the results output JSON if set (see
-// rat.Result). When output space is a concern, consider using the ID/Rid
-// rules instead. Generally, mixing Name and ID types is discouraged.
+// Name encapsulates another Result with a name. In PEGN these are
+// called "significant" (<=) because they can be easily found in the
+// parsed results tree. Names can be any valid Go string but keeping to
+// non-whitespace UTF-8 runes is strongly recommended (and required for
+// rendering to PEG/PEGN). The first argument must be the unique name of
+// the rule to encapsulate. The second argument is the rule to associate
+// with the name. The name appears in the results output JSON if set
+// (see rat.Result).
 //
-// The result contains a single un-named child result that is identical
-// to the named result for consistency with other multiple result rules.
+// Unlike other expressions, Name does not have a child result. This is
+// effectively the same as if the encapsulated rule was called and
+// simply had the Result.Name changed. The encapsulated rule also has an
+// additional entry added to the Rules cache for the name pointing to
+// the same value as the unnamed version of the rule.
 //
 // Note that both the encapsulated rule and the new rule are both cached
 // using different Name and Text values but the same Check function. The

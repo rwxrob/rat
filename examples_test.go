@@ -85,6 +85,38 @@ func ExamplePack_one() {
 
 }
 
+func ExamplePach_lit_Boolean() {
+
+	g := rat.Pack(true)
+	g.Print()
+
+	g.Scan(`true`).PrintText()
+	g.Scan(`true`).Print()
+	g.Scan(`false`).Print()
+	g.Scan(`TRUE`).Print()
+
+	// Output:
+	// "true"
+	// true
+	// {"B":0,"E":4,"R":"true"}
+	// {"B":0,"E":0,"X":"expected: t","R":"false"}
+	// {"B":0,"E":0,"X":"expected: t","R":"TRUE"}
+
+}
+
+func ExamplePack_named() {
+
+	g := rat.Pack(x.Name{`foo`, true})
+	g.Print()
+
+	g.Scan(`true`).Print()
+
+	// Output:
+	// x.Name{"foo", "true"}
+	// {"N":"foo","B":0,"E":4,"R":"true"}
+
+}
+
 func ExamplePack_one_Named() {
 
 	one := x.One{`foo`, `bar`}

@@ -61,21 +61,23 @@ type RuleMaker interface {
 	MakeRule(in any) *Rule
 }
 
-// Rule encapsulates a CheckFunc with a unique ID and Name without the
-// scope of a Grammar. Text must be rat/x compatible expression so that
-// it can be used directly for code generation. Rules are created
-// implementations of RuleMaker since almost every Rule encapsulates
-// a different set of arguments enclosed in its CheckFunc. Once created,
-// a Rule is immutable. Field values must not change so that they
+// Rule encapsulates a CheckFunc with a Name and Text representation.
+// The Name is use as the unique key in the Grammar.Rules cache. Text
+// can be anything, but it is strongly recommended that it contain rat/x
+// compatible expression so that it can be used directly for code
+// generation.
+//
+// Rules are created by implementations of RuleMaker the most important
+// of which is Grammar. Almost every Rule encapsulates a different set
+// of arguments enclosed in its CheckFunc. Once created, a Rule should
+// be considered immutable. Field values must not change so that they
 // correspond with the enclosed values within the CheckFunc closure and
-// so that the Name can be used to uniquely identify the Rule from among
-// others in a rat.Map.
+// so that the Name can be used to uniquely identify the Rule.
 //
 type Rule struct {
-	Name  string    // name corresponding to ID (sometimes dynamically assigned)
-	ID    int       // unique ID for Result one-one with Name
-	Text  string    // rat/x compatible expression (ex: x.Seq{"foo", "bar"})
-	Check CheckFunc // usually closure
+	Name  string    // uniquely identifying name (sometimes dynamically assigned)
+	Text  string    // prefer rat/x compatible expression (ex: x.Seq{"foo", "bar"})
+	Check CheckFunc // closure created with a RuleMaker
 }
 
 // String implements the fmt.Stringer interface by returning the

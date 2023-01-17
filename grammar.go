@@ -35,10 +35,11 @@ var DefaultRuleName = `Rule`
 // for the specified name.
 //
 type Grammar struct {
-	Trace   int              // activate logs for debug visibility
-	Rules   map[string]*Rule // keyed to Rule.Name (not Text)
-	Main    *Rule            // entry point for Check or Scan
-	RuleNum int              // auto-incrementing for ever unnamed rule added.
+	Trace int              // activate logs for debug visibility
+	Rules map[string]*Rule // keyed to Rule.Name (not Text)
+	Main  *Rule            // entry point for Check or Scan
+
+	ruleid int // auto-incrementing for ever unnamed rule added.
 }
 
 // String fulfills the fmt.Stringer interface by producing compilable Go
@@ -112,7 +113,7 @@ func (g *Grammar) Pack(in ...any) *Grammar {
 
 // MakeRule fulfills the MakeRule interface. The input argument is
 // usually a rat/x ("ratex") expression type including x.IsFunc functions.
-// Anything else is interpreted as a literal string by using it's String
+// Anything else is interpreted as a literal string by using its String
 // method or converting it into a string using the %v (string, []rune, []
 // byte, rune) or %q representation. Note that MakeRule does not
 // check the Rules cache for existing Rules. This is done in the other
@@ -132,12 +133,8 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	// rat/x ("ratex") types as expressions
 	case x.Name:
 		return g.MakeNamed(v)
-	case x.ID:
-		return g.MakeID(v)
 	case x.Ref:
 		return g.MakeRef(v)
-	case x.Rid:
-		return g.MakeRid(v)
 	case x.Is:
 		return g.MakeIs(v)
 	case func(r rune) bool:
@@ -180,6 +177,9 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	case fmt.Stringer:
 		return g.MakeLit(v.String())
 
+	case bool:
+		return g.MakeLit(fmt.Sprintf(`%v`, v))
+
 	// anything that has an %q form
 	default:
 		return g.MakeLit(fmt.Sprintf(`%q`, v))
@@ -188,8 +188,8 @@ func (g *Grammar) MakeRule(in any) *Rule {
 }
 
 // NewRule creates a new rule in the grammar cache using the defaults.
-// It is a convenience when the Name and ID are not needed. See AddRule
-// for details. Prefer GetOrNew in general.
+// It is a convenience when a Name is not needed. See AddRule
+// for details.
 func (g *Grammar) NewRule() *Rule {
 	rule := new(Rule)
 	g.AddRule(rule)
@@ -197,23 +197,17 @@ func (g *Grammar) NewRule() *Rule {
 }
 
 // AddRule adds a new rule to the grammar cache keyed to the rule.Name.
-// If a rule was already keyed to that name it is overwritten. If the
-// rule.ID is 0, a new arbitrary ID is assigned that begins with -1 and
-// decreases for every new rule added with a 0 value. If the
-// rule.Name is empty the positive value of the ID is combined with the
-// DefaultRuleName prefix to provide a generic name.
-// Avoid changing the rule.Name or rule.ID values after added
+// If a rule was already keyed to that name it is overwritten.
+// If rule.Name is empty a new incremental name is created with the
+// DefaultRuleName prefix.  Avoid changing the rule.Name values after added
 // since the key in the grammar cache is hard-coded to the rule.Name
-// when called. If the rule.Name and rule.ID are not important consider
+// when called. If the rule.Name is not important consider
 // NewRule instead (which uses these defaults and requires no argument).
 // Returns self for convenience.
 func (g *Grammar) AddRule(rule *Rule) *Rule {
-	if rule.ID == 0 {
-		g.RuleNum++
-		rule.ID = g.RuleNum
-	}
 	if rule.Name == "" {
-		rule.Name = DefaultRuleName + strconv.Itoa(-rule.ID)
+		g.ruleid++
+		rule.Name = DefaultRuleName + strconv.Itoa(g.ruleid)
 	}
 	if g.Rules == nil {
 		g.Rules = map[string]*Rule{}
@@ -222,31 +216,36 @@ func (g *Grammar) AddRule(rule *Rule) *Rule {
 	return rule
 }
 
-// MakeNamed add a Name to the Result that is returned.
+// MakeNamed makes two rules pointing to the same CheckFunc, one unnamed
+// and other named (first argument). Both produce results that have the
+// Name field set.
 func (g *Grammar) MakeNamed(in x.Name) *Rule {
+
+	text := in.String()
+
+	rule, has := g.Rules[text]
+	if has {
+		return rule
+	}
 
 	if len(in) != 2 {
 		panic(x.UsageName)
 	}
 
-	name, isstring := in[0].(string)
-	if !isstring {
+	name, is := in[0].(string)
+	if !is {
 		panic(x.UsageName)
 	}
 
-	rule, has := g.Rules[name]
-	if has {
-		return rule
-	}
-
 	// check the cache for the encapsulated rule, else make one
-	ename := x.String(in[1])
-	irule, rulecached := g.Rules[ename]
-	if !rulecached {
+	iname := x.String(in[1])
+	irule, has := g.Rules[iname]
+	if !has {
 		irule = g.MakeRule(in[1])
 	}
 
 	rule = &Rule{Name: name, Text: in.String()}
+	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		unnamed := irule.Check(r, i)
@@ -254,12 +253,6 @@ func (g *Grammar) MakeNamed(in x.Name) *Rule {
 		return unnamed
 	}
 
-	return g.AddRule(rule)
-}
-
-func (g *Grammar) MakeID(in x.ID) *Rule {
-	rule := new(Rule)
-	// TODO
 	return rule
 }
 
