@@ -116,6 +116,19 @@ func ExamplePack_named() {
 	// {"N":"foo","B":0,"E":4,"R":"true"}
 
 }
+func ExamplePack_ref() {
+
+	g := rat.Pack(x.Ref{`foo`})
+	g.MakeRule(x.Name{`foo`, `foo`})
+	g.Print()
+
+	g.Scan(`foo`).Print()
+
+	// Output:
+	// x.Ref{"foo"}
+	// {"N":"foo","B":0,"E":3,"R":"foo"}
+
+}
 
 func ExamplePack_one_Named() {
 

@@ -115,9 +115,11 @@ func (g *Grammar) Pack(in ...any) *Grammar {
 // usually a rat/x ("ratex") expression type including x.IsFunc functions.
 // Anything else is interpreted as a literal string by using its String
 // method or converting it into a string using the %v (string, []rune, []
-// byte, rune) or %q representation. Note that MakeRule does not
-// check the Rules cache for existing Rules. This is done in the other
-// Make* methods.
+// byte, rune) or %q representation. Note that MakeRule itself does not
+// check the Rules cache for existing Rules not does it add the rule to
+// that cache. This work is left to the Make* methods themselves or to
+// the AddRule method. The result, however, is the same since MakeRule
+// delegates to those Make* methods.
 func (g *Grammar) MakeRule(in any) *Rule {
 
 	if g.Trace > 0 || Trace > 0 {
@@ -257,13 +259,34 @@ func (g *Grammar) MakeNamed(in x.Name) *Rule {
 }
 
 func (g *Grammar) MakeRef(in x.Ref) *Rule {
-	rule := new(Rule)
-	// TODO
-	return rule
-}
-func (g *Grammar) MakeRid(in x.Rid) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	if len(in) != 1 {
+		panic(x.UsageRef)
+	}
+
+	key, is := in[0].(string)
+	if !is {
+		panic(x.UsageRef)
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	rule.Check = func(r []rune, i int) Result {
+		rule, has := g.Rules[key]
+		if has {
+			return rule.Check(r, i)
+		}
+		return Result{R: r, B: i, E: i, X: ErrExpected{in}}
+	}
+
 	return rule
 }
 

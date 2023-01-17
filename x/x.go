@@ -17,7 +17,7 @@ types are used incorrectly the string representation contains the
 that is shorthand for fmt.Println(self).
 
     Name - Foo <- rule or <:Foo rule >
-    Ref  - reference another rule by Name
+    Ref  - reference another rule by Name at runtime
     Is   - boolean class function
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
@@ -186,42 +186,15 @@ func (it Name) String() string {
 
 func (it Name) Print() { fmt.Println(it) }
 
-// ID encapsulates another rule with a integer identifier. This is
-// functionally the same as a Name but saves space in the results output
-// produced because 1 or 2 digits are used instead of the full string of
-// a name. The first argument must be the unique integer of the rule to
-// encapsulate. The second argument is the rule to associate with the
-// name. When output space is not a concern, or more understandable
-// output results are preferred, consider using Name/Ref rules instead.
-// Generally, Name and ID rules are not mixed. The name appears in the
-// results output JSON if set (see rat.Result).
+// Ref refers to another rule by name and is evaluated at runtime
+// allowing reference to entire different rules to be used before they
+// are imported. This prevents having to assign rules to variables and
+// use them in subsequent rules. The same cached lookup is just done at
+// a different point during runtime.
 //
 // PEGN
 //
-// There is no PEGN equivalent. Integers would simply be mapped to
-// string names by applications consuming the JSON parse tree output.
-//
-type ID []any
-
-func (it ID) String() string {
-	if len(it) != 2 {
-		return UsageID
-	}
-	if _, is := it[0].(int); !is {
-		return UsageID
-	}
-	return fmt.Sprintf(`x.ID{%v, %v}`, it[0], String(it[1]))
-}
-
-func (it ID) Print() { fmt.Println(it) }
-
-// Ref refers to another rule by name. This prevents having to assign
-// rules to variables and use them in subsequent rules.
-//
-// PEGN
-//
-//     Foo     <- 'some' 'thing'
-//     Another <- Foo 'else'
+//     Foo     <- 'some' 'thing' Another <- Foo 'else'
 //
 type Ref []any
 
