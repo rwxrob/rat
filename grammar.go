@@ -789,14 +789,75 @@ func (g *Grammar) MakeRep(in x.Rep) *Rule {
 }
 
 func (g *Grammar) MakePos(in x.Pos) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsagePos)
+	}
+
+	iname := x.String(in[0])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[0])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i}
+		res := irule.Check(r, i)
+		if res.X == nil {
+			return result
+		}
+		result.X = ErrExpected{in}
+		return result
+	}
+
 	return rule
+
 }
+
 func (g *Grammar) MakeNeg(in x.Neg) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageNeg)
+	}
+
+	iname := x.String(in[0])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[0])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i}
+		res := irule.Check(r, i)
+		if res.X != nil {
+			return result
+		}
+		result.X = ErrExpected{in}
+		return result
+	}
+
 	return rule
+
 }
 
 func (g *Grammar) MakeAny(in x.Any) *Rule {

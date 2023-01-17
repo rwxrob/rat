@@ -337,6 +337,49 @@ func ExamplePack_max() {
 
 }
 
+func ExamplePack_pos() {
+
+	g := rat.Pack(x.Pos{`foo`})
+	g.Print()
+
+	g.Scan(`fooooo`).PrintText()
+	g.Scan(`fooooo`).Print()
+
+	g.Scan(`fo`).Print()
+	g.Scan(`bar`).Print()
+
+	// Output:
+	// x.Pos{x.Lit{"foo"}}
+	//
+	// {"B":0,"E":0,"R":"fooooo"}
+	// {"B":0,"E":0,"X":"expected: x.Pos{x.Lit{\"foo\"}}","R":"fo"}
+	// {"B":0,"E":0,"X":"expected: x.Pos{x.Lit{\"foo\"}}","R":"bar"}
+
+}
+
+func ExamplePack_neg() {
+
+	g := rat.Pack(x.Neg{`foo`})
+	g.Print()
+
+	g.Scan(`fo`).PrintText()
+	g.Scan(`fo`).Print()
+
+	g.Scan(`bar`).PrintText()
+	g.Scan(`bar`).Print()
+
+	g.Scan(`fooooo`).Print()
+
+	// Output:
+	// x.Neg{x.Lit{"foo"}}
+	//
+	// {"B":0,"E":0,"R":"fo"}
+	//
+	// {"B":0,"E":0,"R":"bar"}
+	// {"B":0,"E":0,"X":"expected: x.Neg{x.Lit{\"foo\"}}","R":"fooooo"}
+
+}
+
 func ExamplePack_end() {
 
 	g := rat.Pack(x.Any{2}, x.End{})
