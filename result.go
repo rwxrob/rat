@@ -152,14 +152,6 @@ func ByDepth(root Result) []Result {
 	return results
 }
 
-// ByLevel flattens a rooted node tree of Result structs by
-// by traversing in a synchronous, breadth-first, leveler way.
-func ByLevel(root Result) []Result {
-	results := []Result{}
-	// TODO
-	return results
-}
-
 // Walk calls WalkBy(DefaultFlatFunc, root, do).  Use this when the
 // order of processing matters more than speed (ASTs, etc.). Also see
 // WalkAsync.
@@ -186,22 +178,6 @@ func WalkBy(flatten FlatFunc, root Result, do VisitFunc) {
 // function in this package (WalkByAsync, for example). By default,
 // there is no limit (0).
 var MaxGoroutines int
-
-// WalkByAsync is the same as WalkBy but concurrently starts a new
-// goroutine for every result. By default, the number of goroutines
-// creates is unlimited, but can be set with MaxGoroutines for the
-// package.
-// WalkAsync calls WalkByAsync(DefaultFlatFunc, root, do). Use this when
-// order does not matter, speed is needed, and sufficient concurrent
-// resources are available. The MaxGoroutines value is observed.
-
-func WalkByAsync(flatten FlatFunc, root Result, do VisitFunc) {
-	//TODO
-}
-
-func WalkDepth(a Result, do VisitFunc) {
-	// TODO
-}
 
 // WithName returns all results with any of the passed names. Returns
 // zero length slice if no results. As a convenience, multiple names may

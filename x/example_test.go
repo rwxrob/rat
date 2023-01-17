@@ -28,30 +28,30 @@ func ExampleString() {
 	}
 
 	// Output:
-	// "string"
-	// "bytes as string"
-	// "runes as string"
-	// "x"
-	// "😀"
-	// "true"
-	// "false"
-	// "-127"
-	// "-32767"
-	// "-9223372036854775808"
-	// "-9785"
-	// "127"
-	// "255"
-	// "3.141592653589793"
-	// "32767"
-	// "9223372036854775807"
-	// "9786"
-	// "\x00"
-	// "☹"
-	// "☺"
-	// "👩"
+	// x.Lit{"string"}
+	// x.Lit{"bytes as string"}
+	// x.Lit{"runes as string"}
+	// x.Lit{"x"}
+	// x.Lit{"😀"}
+	// x.Lit{"true"}
+	// x.Lit{"false"}
+	// x.Lit{"-127"}
+	// x.Lit{"-32767"}
+	// x.Lit{"-9223372036854775808"}
+	// x.Lit{"-9785"}
+	// x.Lit{"127"}
+	// x.Lit{"255"}
+	// x.Lit{"3.141592653589793"}
+	// x.Lit{"32767"}
+	// x.Lit{"9223372036854775807"}
+	// x.Lit{"9786"}
+	// x.Lit{"\x00"}
+	// x.Lit{"☹"}
+	// x.Lit{"☺"}
+	// x.Lit{"👩"}
 	// foo
-	// x.Seq{"1", "false"}
-	// x.Seq{"one", "two"}
+	// x.Seq{x.Lit{"1"}, x.Lit{"false"}}
+	// x.Seq{x.Lit{"one"}, x.Lit{"two"}}
 
 }
 
@@ -60,7 +60,7 @@ func ExampleString_any_Slice() {
 	fmt.Println(x.String([]any{}))
 
 	// Output:
-	// "foo"
+	// x.Lit{"foo"}
 	// "%!ERROR: invalid rat/x type or syntax"
 
 }
@@ -74,7 +74,7 @@ func ExampleName() {
 	x.Name{false, `foo`}.Print()
 
 	// Output:
-	// x.Name{"FooName", "foo"}
+	// x.Name{"FooName", x.Lit{"foo"}}
 	// "%!USAGE: x.Name{name, rule}"
 	// "%!USAGE: x.Name{name, rule}"
 
@@ -149,10 +149,10 @@ func ExampleSeq() {
 	x.Seq{[]any{}}.Print()
 
 	// Output:
-	// x.Seq{"foo", "false", "bar"}
-	// x.Seq{"foo", "bar"}
-	// "foo"
-	// "foo"
+	// x.Seq{x.Lit{"foo"}, x.Lit{"false"}, x.Lit{"bar"}}
+	// x.Seq{x.Lit{"foo"}, x.Lit{"bar"}}
+	// x.Lit{"foo"}
+	// x.Lit{"foo"}
 	// "%!USAGE: x.Seq{...rule}"
 	// "%!USAGE: x.Seq{...rule}"
 
@@ -167,8 +167,8 @@ func ExampleOne() {
 	x.One{}.Print()
 
 	// Output:
-	// x.One{"foo", "false", "bar"}
-	// "foo"
+	// x.One{x.Lit{"foo"}, x.Lit{"false"}, x.Lit{"bar"}}
+	// x.Lit{"foo"}
 	// "%!USAGE: x.One{...rule}"
 
 }
@@ -182,7 +182,7 @@ func ExampleOpt() {
 	x.Opt{`foo`, false}.Print()
 
 	// Output:
-	// x.Opt{"foo"}
+	// x.Opt{x.Lit{"foo"}}
 	// "%!USAGE: x.Opt{rule}"
 	// "%!USAGE: x.Opt{rule}"
 
@@ -223,7 +223,7 @@ func ExampleLit_any_Slice() {
 	// Output:
 	// x.Lit{"stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"}
 	// "%!USAGE: x.Lit{...any}"
-	// "false"
+	// x.Lit{"false"}
 	// "%!USAGE: x.Lit{...any}"
 
 }
@@ -237,7 +237,7 @@ func ExampleMn1() {
 	x.Mn1{}.Print()
 
 	// Output:
-	// x.Mn1{"foo"}
+	// x.Mn1{x.Lit{"foo"}}
 	// "%!USAGE: x.Mn1{rule}"
 	// "%!USAGE: x.Mn1{rule}"
 }
@@ -251,7 +251,7 @@ func ExampleMn0() {
 	x.Mn0{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Mn0{"foo"}
+	// x.Mn0{x.Lit{"foo"}}
 	// "%!USAGE: x.Mn0{rule}"
 	// "%!USAGE: x.Mn0{rule}"
 
@@ -267,7 +267,7 @@ func ExampleMin() {
 	x.Min{`two`, `foo`}.Print()
 
 	// Output:
-	// x.Min{2, "foo"}
+	// x.Min{2, x.Lit{"foo"}}
 	// "%!USAGE: x.Min{n, rule}"
 	// "%!USAGE: x.Min{n, rule}"
 	// "%!USAGE: x.Min{n, rule}"
@@ -284,7 +284,7 @@ func ExampleMax() {
 	x.Max{`two`, `foo`}.Print()
 
 	// Output:
-	// x.Max{2, "foo"}
+	// x.Max{2, x.Lit{"foo"}}
 	// "%!USAGE: x.Max{n, rule}"
 	// "%!USAGE: x.Max{n, rule}"
 	// "%!USAGE: x.Max{n, rule}"
@@ -302,7 +302,7 @@ func ExampleMmx() {
 	x.Mmx{2, `four`, `foo`}.Print()
 
 	// Output:
-	// x.Mmx{2, 4, "foo"}
+	// x.Mmx{2, 4, x.Lit{"foo"}}
 	// "%!USAGE: x.Mmx{n, m, rule}"
 	// "%!USAGE: x.Mmx{n, m, rule}"
 	// "%!USAGE: x.Mmx{n, m, rule}"
@@ -320,7 +320,7 @@ func ExampleRep() {
 	x.Rep{`two`, `foo`}.Print()
 
 	// Output:
-	// x.Rep{2, "foo"}
+	// x.Rep{2, x.Lit{"foo"}}
 	// "%!USAGE: x.Rep{n, rule}"
 	// "%!USAGE: x.Rep{n, rule}"
 	// "%!USAGE: x.Rep{n, rule}"
@@ -336,7 +336,7 @@ func ExamplePos() {
 	x.Pos{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Pos{"foo"}
+	// x.Pos{x.Lit{"foo"}}
 	// "%!USAGE: x.Pos{rule}"
 	// "%!USAGE: x.Pos{rule}"
 
@@ -351,7 +351,7 @@ func ExampleNeg() {
 	x.Neg{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Neg{"foo"}
+	// x.Neg{x.Lit{"foo"}}
 	// "%!USAGE: x.Neg{rule}"
 	// "%!USAGE: x.Neg{rule}"
 
@@ -384,36 +384,6 @@ func ExampleAny_minmax() {
 	// "%!USAGE: x.Any{n} or x.Any{n, m}"
 	// "%!USAGE: x.Any{n} or x.Any{n, m}"
 	// "%!USAGE: x.Any{n} or x.Any{n, m}"
-
-}
-
-// -------------------------------- Toi -------------------------------
-
-func ExampleToi() {
-
-	x.Toi{`foo`}.Print()
-	x.Toi{}.Print()
-	x.Toi{`foo`, `bar`}.Print()
-
-	// Output:
-	// x.Toi{"foo"}
-	// "%!USAGE: x.Toi{rule}"
-	// "%!USAGE: x.Toi{rule}"
-
-}
-
-// -------------------------------- Tox -------------------------------
-
-func ExampleTox() {
-
-	x.Tox{`foo`}.Print()
-	x.Tox{}.Print()
-	x.Tox{`foo`, `bar`}.Print()
-
-	// Output:
-	// x.Tox{"foo"}
-	// "%!USAGE: x.Tox{rule}"
-	// "%!USAGE: x.Tox{rule}"
 
 }
 

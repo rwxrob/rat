@@ -398,6 +398,24 @@ func ExamplePack_end() {
 
 }
 
+func ExamplePack_rng() {
+
+	g := rat.Pack(x.Rng{'😀', '🙏'})
+	g.Print()
+
+	g.Scan(`🙉`).PrintText()
+	g.Scan(`🙉`).Print()
+
+	g.Scan(`🚆`).Print()
+
+	// Output:
+	// x.Rng{'😀', '🙏'}
+	// 🙉
+	// {"B":0,"E":1,"R":"🙉"}
+	// {"B":0,"E":0,"X":"expected: x.Rng{'😀', '🙏'}","R":"🚆"}
+
+}
+
 func ExamplePack_opt() {
 
 	g := rat.Pack(x.Opt{`foo`})

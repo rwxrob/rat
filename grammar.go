@@ -145,10 +145,6 @@ func (g *Grammar) MakeRule(in any) *Rule {
 		return g.MakeNeg(v)
 	case x.Any:
 		return g.MakeAny(v)
-	case x.Toi:
-		return g.MakeToi(v)
-	case x.Tox:
-		return g.MakeTox(v)
 	case x.Rng:
 		return g.MakeRng(v)
 	case x.End:
@@ -886,15 +882,13 @@ func (g *Grammar) makeAnyN(in x.Any) *Rule {
 	}
 
 	name := in.String()
-	rule := new(Rule)
-	rule.Name = name
-	rule.Text = name
+	rule := &Rule{Name: name, Text: name}
 	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
 		start := i
 		if i+n > len(r) {
-			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{in}}
 		}
 		return Result{R: r, B: start, E: i + n}
 	}
@@ -920,9 +914,7 @@ func (g *Grammar) makeAnyMmx(in x.Any) *Rule {
 	}
 
 	name := in.String()
-	rule := new(Rule)
-	rule.Name = name
-	rule.Text = name
+	rule := &Rule{Name: name, Text: name}
 	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {
@@ -930,7 +922,7 @@ func (g *Grammar) makeAnyMmx(in x.Any) *Rule {
 
 		// minimum is more than we have
 		if i+m > len(r) {
-			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{rule.Name}}
+			return Result{R: r, B: start, E: len(r) - 1, X: ErrExpected{in}}
 		}
 
 		// we have enough for max
@@ -946,20 +938,45 @@ func (g *Grammar) makeAnyMmx(in x.Any) *Rule {
 
 }
 
-func (g *Grammar) MakeToi(in x.Toi) *Rule {
-	rule := new(Rule)
-	// TODO
-	return rule
-}
-func (g *Grammar) MakeTox(in x.Tox) *Rule {
-	rule := new(Rule)
-	// TODO
-	return rule
-}
 func (g *Grammar) MakeRng(in x.Rng) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 2 {
+		panic(x.UsageRng)
+	}
+
+	beg, is := in[0].(rune)
+	if !is {
+		panic(x.UsageRng)
+	}
+
+	end, is := in[1].(rune)
+	if !is {
+		panic(x.UsageRng)
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i}
+		cur := r[i]
+		if beg <= cur && cur <= end {
+			result.E++
+			return result
+		}
+		result.X = ErrExpected{in}
+		return result
+	}
+
 	return rule
+
 }
 
 func (g *Grammar) MakeEnd(in x.End) *Rule {

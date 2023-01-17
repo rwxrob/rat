@@ -31,9 +31,7 @@ that is shorthand for fmt.Println(self).
     Rep  - rule{n}
     Pos  - &rule
     Neg  - !rule
-    Any  - .{n}
-    Toi  - ..rule
-    Tox  - ...rule
+    Any  - .{n} or .{m,n}
     Rng  - [a-f] / [x43-x54] / [u3243-u4545]
     End  - !.
 
@@ -127,14 +125,13 @@ func String(it any) string {
 }
 
 // JoinLit takes the string form of each argument (by passing to String)
-// and joins them removing any quotation marks. Assumes types passed are
-// literals that String would return as quoted. Does not work for other
+// and joins. Assumes types passed are literals. Does not work for other
 // rat/x expressions.
 func JoinLit(args ...any) string {
 	var str string
 	for _, it := range args {
 		buf := String(it)
-		str += buf[1 : len(buf)-1]
+		str += buf[7 : len(buf)-2]
 	}
 	return str
 }
@@ -559,12 +556,12 @@ func (it Neg) Print() { fmt.Println(it) }
 
 // Any represents a specific number of any valid rune. If more than one
 // argument, then first is minimum and second maximum. If the maximum
-// is 0 then maximum is unlimited and will consume all runes remaining.
+// is 0 then maximum is unlimited and consumes all runes remaining.
 //
 // PEGN
 //
 //    .{n}
-//    .{n,m}
+//    .{m,n}
 //
 type Any []any
 
@@ -592,40 +589,6 @@ func (it Any) String() string {
 }
 
 func (it Any) Print() { fmt.Println(it) }
-
-// Toi represents any rune up to and including the specified rule.
-//
-// PEGN
-//
-//    ..rule
-//
-type Toi []any // ..rule
-
-func (it Toi) String() string {
-	if len(it) != 1 {
-		return UsageToi
-	}
-	return fmt.Sprintf(`x.Toi{%v}`, String(it[0]))
-}
-
-func (it Toi) Print() { fmt.Println(it) }
-
-// Tox represents any rune up to the specified rule, but excluding it.
-//
-// PEGN
-//
-//    ...rule
-//
-type Tox []any // ..rule
-
-func (it Tox) String() string {
-	if len(it) != 1 {
-		return UsageTox
-	}
-	return fmt.Sprintf(`x.Tox{%v}`, String(it[0]))
-}
-
-func (it Tox) Print() { fmt.Println(it) }
 
 // Rng represents an inclusive range between any two valid runes.
 //
