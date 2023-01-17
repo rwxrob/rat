@@ -157,11 +157,6 @@ func ByDepth(root Result) []Result {
 // WalkAsync.
 func Walk(root Result, do VisitFunc) { WalkBy(DefaultFlatFunc, root, do) }
 
-// WalkAsync calls WalkByAsync(DefaultFlatFunc, root, do). Use this when
-// order does not matter, speed is needed, and sufficient concurrent
-// resources are available. The MaxGoroutines value is observed.
-func WalkAsync(root Result, do VisitFunc) { WalkByAsync(DefaultFlatFunc, root, do) }
-
 // WalkBy takes a function to flatten a rooted node tree (FlatFunc),
 // creates a flattened slice of Results starting from root Result, and
 // then passes each synchronously to the VisitFunc waiting for it to
