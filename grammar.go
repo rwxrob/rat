@@ -480,25 +480,201 @@ func (g *Grammar) MakeLit(in any) *Rule {
 }
 
 func (g *Grammar) MakeMn1(in x.Mn1) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageMn1)
+	}
+
+	iname := x.String(in[0])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[0])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i, C: []Result{}}
+		var count int
+		var res Result
+
+		for {
+			res = irule.Check(r, i)
+			if res.X != nil {
+				break
+			}
+			result.C = append(result.C, res)
+			i = res.E
+			result.E = i
+			count++
+		}
+
+		if count >= 1 {
+			return result
+		}
+
+		result.X = ErrExpected{in}
+		return result
+	}
+
 	return rule
+
 }
+
 func (g *Grammar) MakeMn0(in x.Mn0) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageMn0)
+	}
+
+	iname := x.String(in[0])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[0])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i, C: []Result{}}
+		var res Result
+
+		for {
+			res = irule.Check(r, i)
+			if res.X != nil {
+				break
+			}
+			result.C = append(result.C, res)
+			i = res.E
+			result.E = i
+		}
+
+		return result
+	}
+
 	return rule
+
 }
 
 func (g *Grammar) MakeMin(in x.Min) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 2 {
+		panic(x.UsageMin)
+	}
+
+	min, is := in[0].(int)
+	if !is || min <= 0 {
+		panic(x.UsageMin)
+	}
+
+	iname := x.String(in[1])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[1])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i, C: []Result{}}
+		var count int
+		var res Result
+
+		for {
+			res = irule.Check(r, i)
+			if res.X != nil {
+				break
+			}
+			result.C = append(result.C, res)
+			i = res.E
+			result.E = i
+			count++
+		}
+
+		if count >= min {
+			return result
+		}
+
+		result.X = ErrExpected{in}
+		return result
+	}
+
 	return rule
+
 }
 
 func (g *Grammar) MakeMax(in x.Max) *Rule {
-	rule := new(Rule)
-	// TODO
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 2 {
+		panic(x.UsageMax)
+	}
+
+	max, is := in[0].(int)
+	if !is || max <= 0 {
+		panic(x.UsageMax)
+	}
+
+	iname := x.String(in[1])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[1])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i, C: []Result{}}
+		var count int
+		var res Result
+		for {
+			res = irule.Check(r, i)
+			if res.X != nil {
+				break
+			}
+			if count >= max {
+				result.X = ErrExpected{in}
+				return result
+			}
+			result.C = append(result.C, res)
+			i = res.E
+			result.E = i
+			count++
+		}
+		return result
+	}
+
 	return rule
 }
 
