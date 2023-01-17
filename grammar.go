@@ -2,7 +2,6 @@ package rat
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"strconv"
 
@@ -67,28 +66,7 @@ func (g *Grammar) Scan(in any) Result {
 	if g.Main == nil {
 		return Result{X: ErrIsZero{g.Main}}
 	}
-
-	var runes []rune
-	switch v := in.(type) {
-
-	case string:
-		runes = []rune(v)
-
-	case []byte:
-		runes = []rune(string(v))
-
-	case []rune:
-		runes = v
-
-	case io.Reader:
-		buf, err := io.ReadAll(v)
-		if err != nil {
-			return Result{X: err}
-		}
-		runes = []rune(string(buf))
-	}
-
-	return g.Main.Check(runes, 0)
+	return g.Main.Scan(in)
 }
 
 // Pack allows multiple rules to be passed (unlike MakeRule). If one
