@@ -468,12 +468,14 @@ func (g *Grammar) MakeLit(in any) *Rule {
 
 	}
 
-	rule, has := g.Rules[val]
+	name := `x.Lit{"` + val + `"}`
+
+	rule, has := g.Rules[name]
 	if has {
 		return rule
 	}
 
-	rule = &Rule{Name: val, Text: x.String(val)}
+	rule = &Rule{Name: name, Text: name}
 	g.AddRule(rule)
 
 	rule.Check = func(r []rune, i int) Result {

@@ -100,28 +100,28 @@ func String(it any) string {
 		return str + `}`
 
 	case string:
-		return fmt.Sprintf(`%q`, v)
+		return fmt.Sprintf(`x.Lit{%q}`, v)
 
 	case []rune:
-		return fmt.Sprintf(`%q`, string(v))
+		return fmt.Sprintf(`x.Lit{%q}`, string(v))
 
 	case []byte:
-		return fmt.Sprintf(`%q`, string(v))
+		return fmt.Sprintf(`x.Lit{%q}`, string(v))
 
 	case rune:
-		return fmt.Sprintf(`%q`, string(v))
+		return fmt.Sprintf(`x.Lit{%q}`, string(v))
 
 	case bool:
-		return fmt.Sprintf(`"%v"`, v)
+		return fmt.Sprintf(`x.Lit{"%v"}`, v)
 
 	case func(r rune) bool:
-		return FuncName(v)
+		return `x.Is{` + FuncName(v) + `}`
 
 	case IsFunc:
-		return FuncName(v)
+		return `x.Is{` + FuncName(v) + `}`
 
 	default:
-		return fmt.Sprintf(`"%v"`, v)
+		return fmt.Sprintf(`x.Lit{"%v"}`, v)
 
 	}
 }
@@ -194,7 +194,8 @@ func (it Name) Print() { fmt.Println(it) }
 //
 // PEGN
 //
-//     Foo     <- 'some' 'thing' Another <- Foo 'else'
+//     Foo     <= 'some' 'thing'
+//     Another <- Foo 'else'
 //
 type Ref []any
 
@@ -212,26 +213,6 @@ func (args Ref) String() string {
 }
 
 func (it Ref) Print() { fmt.Println(it) }
-
-// Rid refers to another rule by ID. This prevents having to assign
-// rules to variables and use them in subsequent rules.
-//
-type Rid []any
-
-func (args Rid) String() string {
-	switch len(args) {
-	case 1:
-		_, isint := args[0].(int)
-		if !isint {
-			return UsageRid
-		}
-		return fmt.Sprintf(`x.Rid{"%v"}`, args[0])
-	default:
-		return UsageRid
-	}
-}
-
-func (it Rid) Print() { fmt.Println(it) }
 
 // IsFunc functions return true if the passed rune is contained in a set
 // of runes. The unicode package contains several examples.
@@ -268,9 +249,17 @@ func (it Is) String() string {
 	}
 	switch v := it[0].(type) {
 	case func(r rune) bool:
-		return `x.Is{` + FuncName(v) + `}`
+		name := FuncName(v)
+		if name[0:4] == "func" {
+			return UsageIs
+		}
+		return `x.Is{` + name + `}`
 	case IsFunc:
-		return `x.Is{` + FuncName(v) + `}`
+		name := FuncName(v)
+		if name[0:4] == "func" {
+			return UsageIs
+		}
+		return `x.Is{` + name + `}`
 	default:
 		return UsageIs
 	}
@@ -400,10 +389,10 @@ func (rules Lit) String() string {
 		if len(it) == 0 {
 			return UsageLit
 		}
-		return `"` + JoinLit(it...) + `"`
+		return `x.Lit{"` + JoinLit(it...) + `"}`
 
 	default:
-		return `"` + JoinLit(rules...) + `"`
+		return `x.Lit{"` + JoinLit(rules...) + `"}`
 	}
 
 }

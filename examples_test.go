@@ -76,12 +76,12 @@ func ExamplePack_one() {
 	g.Scan(`baz`).Print()
 
 	// Output:
-	// x.One{"foo", "bar"}
+	// x.One{x.Lit{"foo"}, x.Lit{"bar"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
 	// bar
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barfoo"}
-	// {"B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","R":"baz"}
+	// {"B":0,"E":0,"X":"expected: x.One{x.Lit{\"foo\"}, x.Lit{\"bar\"}}","R":"baz"}
 
 }
 
@@ -96,7 +96,7 @@ func ExamplePach_lit_Boolean() {
 	g.Scan(`TRUE`).Print()
 
 	// Output:
-	// "true"
+	// x.Lit{"true"}
 	// true
 	// {"B":0,"E":4,"R":"true"}
 	// {"B":0,"E":0,"X":"expected: t","R":"false"}
@@ -112,21 +112,28 @@ func ExamplePack_named() {
 	g.Scan(`true`).Print()
 
 	// Output:
-	// x.Name{"foo", "true"}
+	// x.Name{"foo", x.Lit{"true"}}
 	// {"N":"foo","B":0,"E":4,"R":"true"}
 
 }
 func ExamplePack_ref() {
 
-	g := rat.Pack(x.Ref{`foo`})
-	g.MakeRule(x.Name{`foo`, `foo`})
+	g := rat.Pack(x.Ref{`Foo`})
+	g.MakeRule(x.Name{`Foo`, `foo`})
 	g.Print()
 
+	g.Rules[`x.Lit{"foo"}`].Print()
+	g.Rules[`Foo`].Print()
+
 	g.Scan(`foo`).Print()
+	g.Rules[`x.Lit{"foo"}`].Scan(`foo`).Print()
 
 	// Output:
-	// x.Ref{"foo"}
-	// {"N":"foo","B":0,"E":3,"R":"foo"}
+	// x.Ref{"Foo"}
+	// x.Lit{"foo"}
+	// x.Name{"Foo", x.Lit{"foo"}}
+	// {"N":"Foo","B":0,"E":3,"R":"foo"}
+	// {"B":0,"E":3,"R":"foo"}
 
 }
 
@@ -149,12 +156,12 @@ func ExamplePack_one_Named() {
 	g.Scan(`fobar`).Print()
 
 	// Output:
-	// x.Name{"Foo", x.One{"foo", "bar"}}
+	// x.Name{"Foo", x.One{x.Lit{"foo"}, x.Lit{"bar"}}}
 	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
 	// foo
 	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barrr"}
 	// bar
-	// {"N":"Foo","B":0,"E":0,"X":"expected: x.One{\"foo\", \"bar\"}","R":"fobar"}
+	// {"N":"Foo","B":0,"E":0,"X":"expected: x.One{x.Lit{\"foo\"}, x.Lit{\"bar\"}}","R":"fobar"}
 
 }
 
@@ -198,7 +205,7 @@ func ExamplePack_mmx() {
 	g.Scan(`barfoofoo`).Print()
 
 	// Output:
-	// x.Mmx{1, 3, "foo"}
+	// x.Mmx{1, 3, x.Lit{"foo"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
 	// foofoo
@@ -207,7 +214,7 @@ func ExamplePack_mmx() {
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
 	// foofoofoo
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
-	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, \"foo\"}","R":"barfoofoo"}
+	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, x.Lit{\"foo\"}}","R":"barfoofoo"}
 
 }
 
@@ -241,7 +248,7 @@ func ExamplePack_opt() {
 	g.Scan(`bar`).Print()
 
 	// Output:
-	// x.Opt{"foo"}
+	// x.Opt{x.Lit{"foo"}}
 	// foo
 	// {"B":0,"E":3,"R":"foo"}
 	//
@@ -260,10 +267,10 @@ func ExamplePack_rep() {
 	g.Scan(`foobar`).Print()
 
 	// Output:
-	// x.Rep{2, "foo"}
+	// x.Rep{2, x.Lit{"foo"}}
 	// foofoo
 	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
-	// {"B":0,"E":3,"X":"expected: x.Rep{2, \"foo\"}","C":[{"B":0,"E":3}],"R":"foobar"}
+	// {"B":0,"E":3,"X":"expected: x.Rep{2, x.Lit{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foobar"}
 
 }
 
@@ -345,28 +352,30 @@ func ExampleMakeLit() {
 
 	g := new(rat.Grammar)
 	foo := g.MakeLit(`foo`)
+	foo.Print()
 	oo := g.MakeLit(`oo`)
+	oo.Print()
 	foo.Check([]rune(`foo`), 0).Print()
 	foo.Check([]rune(`fooo`), 0).Print()
 	foo.Check([]rune(`fo`), 0).Print()
 	oo.Check([]rune(`fooo`), 0).Print()
 	oo.Check([]rune(`fooo`), 1).Print()
 	oo.Check([]rune(`fooo`), 2).Print()
-	fmt.Println(g.Rules[`foo`].Name)
-	fmt.Println(g.Rules[`foo`].Text)
-	fmt.Println(g.Rules[`oo`].Name)
-	fmt.Println(g.Rules[`oo`].Text)
+
+	for k, v := range g.Rules {
+		fmt.Printf("key: %q name: %q text: %q\n", k, v.Name, v.Text)
+	}
 
 	//Output:
+	// x.Lit{"foo"}
+	// x.Lit{"oo"}
 	// {"B":0,"E":3,"R":"foo"}
 	// {"B":0,"E":3,"R":"fooo"}
 	// {"B":0,"E":2,"X":"expected: o","R":"fo"}
 	// {"B":0,"E":0,"X":"expected: o","R":"fooo"}
 	// {"B":1,"E":3,"R":"fooo"}
 	// {"B":2,"E":4,"R":"fooo"}
-	// foo
-	// "foo"
-	// oo
-	// "oo"
+	// key: "x.Lit{\"foo\"}" name: "x.Lit{\"foo\"}" text: "x.Lit{\"foo\"}"
+	// key: "x.Lit{\"oo\"}" name: "x.Lit{\"oo\"}" text: "x.Lit{\"oo\"}"
 
 }

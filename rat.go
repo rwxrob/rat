@@ -21,7 +21,10 @@ instead. Consider it the equivalent of compiling a regular expression.
 */
 package rat
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
 // Pack interprets a sequence of any valid Go types into a Grammar
 // suitable for checking and parsing any UTF-8 input. All arguments
@@ -86,6 +89,25 @@ func (r Rule) String() string { return r.Text }
 
 // Print is a shortcut for fmt.Println(rule) which calls String.
 func (r Rule) Print() { fmt.Println(r) }
+
+func (r Rule) Scan(in any) Result {
+	var runes []rune
+	switch v := in.(type) {
+	case string:
+		runes = []rune(v)
+	case []byte:
+		runes = []rune(string(v))
+	case []rune:
+		runes = v
+	case io.Reader:
+		buf, err := io.ReadAll(v)
+		if err != nil {
+			return Result{X: err}
+		}
+		runes = []rune(string(buf))
+	}
+	return r.Check(runes, 0)
+}
 
 // CheckFunc examines the []rune buffer at a specific position for
 // a specific grammar rule and should generally only be used from an

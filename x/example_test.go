@@ -129,11 +129,11 @@ func ExampleIs() {
 	// x.Is{aclass}
 	// x.Is{IsPrint}
 	// x.Is{myIsPrint}
-	// "%!USAGE: x.Is{namedfunc}"
-	// "%!USAGE: x.Is{namedfunc}"
-	// "%!USAGE: x.Is{namedfunc}"
-	// "%!USAGE: x.Is{namedfunc}"
-	// "%!USAGE: x.Is{namedfunc}"
+	// "%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"
+	// "%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"
+	// "%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"
+	// "%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"
+	// "%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"
 
 }
 
@@ -202,7 +202,7 @@ func ExampleLit() {
 	}.Print()
 
 	// Output:
-	// "stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"
+	// x.Lit{"stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"}
 
 }
 
@@ -221,7 +221,7 @@ func ExampleLit_any_Slice() {
 	x.Lit{[]any{}}.Print()
 
 	// Output:
-	// "stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"
+	// x.Lit{"stringbytes as stringrunes as stringx😀truefalse-127-32767-9223372036854775808-97851272553.1415926535897933276792233720368547758079786\x00☹☺👩"}
 	// "%!USAGE: x.Lit{...any}"
 	// "false"
 	// "%!USAGE: x.Lit{...any}"
