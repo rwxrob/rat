@@ -137,6 +137,34 @@ func ExamplePack_ref() {
 
 }
 
+func ExamplePack_save() {
+
+	g := new(rat.Grammar).Init()
+	g.MakeRule(x.Name{`Post`, x.Mmx{3, 8, '`'}})
+	g.Pack(x.Name{`Fenced`, x.Seq{x.Save{`Post`}, x.To{x.Val{`Post`}}, x.Val{`Post`}}})
+	g.Print()
+
+	// one step at a time
+	g.Rules[`x.Save{"Post"}`].Scan("````").Print()
+	g.Rules[`Post`].Scan("````").Print()
+	g.Rules[`x.Val{"Post"}`].Scan("````````").Print()
+	g.Rules[`x.To{x.Val{"Post"}}`].Scan("....``````").Print()
+
+	// combined
+	g.Scan("```.......`````").PrintText()
+	g.Scan("```.......`````").Print()
+
+	// Output:
+	// x.Name{"Fenced", x.Seq{x.Save{"Post"}, x.To{x.Val{"Post"}}, x.Val{"Post"}}}
+	// {"N":"Post","B":0,"E":4,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3},{"B":3,"E":4}],"R":"````"}
+	// {"N":"Post","B":0,"E":4,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3},{"B":3,"E":4}],"R":"````"}
+	// {"B":0,"E":4,"R":"````````"}
+	// {"B":0,"E":4,"R":"....``````"}
+	// ```.......```
+	// {"N":"Fenced","B":0,"E":13,"C":[{"N":"Post","B":0,"E":3,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3}]},{"B":3,"E":10},{"B":10,"E":13}],"R":"```.......`````"}
+
+}
+
 func ExamplePack_one_Named() {
 
 	one := x.One{`foo`, `bar`}
@@ -339,7 +367,7 @@ func ExamplePack_max() {
 
 func ExamplePack_pos() {
 
-	g := rat.Pack(x.Pos{`foo`})
+	g := rat.Pack(x.See{`foo`})
 	g.Print()
 
 	g.Scan(`fooooo`).PrintText()
@@ -349,17 +377,17 @@ func ExamplePack_pos() {
 	g.Scan(`bar`).Print()
 
 	// Output:
-	// x.Pos{x.Lit{"foo"}}
+	// x.See{x.Lit{"foo"}}
 	//
 	// {"B":0,"E":0,"R":"fooooo"}
-	// {"B":0,"E":0,"X":"expected: x.Pos{x.Lit{\"foo\"}}","R":"fo"}
-	// {"B":0,"E":0,"X":"expected: x.Pos{x.Lit{\"foo\"}}","R":"bar"}
+	// {"B":0,"E":0,"X":"expected: x.See{x.Lit{\"foo\"}}","R":"fo"}
+	// {"B":0,"E":0,"X":"expected: x.See{x.Lit{\"foo\"}}","R":"bar"}
 
 }
 
 func ExamplePack_neg() {
 
-	g := rat.Pack(x.Neg{`foo`})
+	g := rat.Pack(x.Not{`foo`})
 	g.Print()
 
 	g.Scan(`fo`).PrintText()
@@ -371,12 +399,12 @@ func ExamplePack_neg() {
 	g.Scan(`fooooo`).Print()
 
 	// Output:
-	// x.Neg{x.Lit{"foo"}}
+	// x.Not{x.Lit{"foo"}}
 	//
 	// {"B":0,"E":0,"R":"fo"}
 	//
 	// {"B":0,"E":0,"R":"bar"}
-	// {"B":0,"E":0,"X":"expected: x.Neg{x.Lit{\"foo\"}}","R":"fooooo"}
+	// {"B":0,"E":0,"X":"expected: x.Not{x.Lit{\"foo\"}}","R":"fooooo"}
 
 }
 
@@ -454,62 +482,37 @@ func ExamplePack_rep() {
 
 }
 
-/*
-func ExampleRule() {
+func ExamplePack_to() {
 
-	rule := new(rat.Rule)
-	rule.Name = `Foo`
-	rule.ID = 1
-	rule.Text = `x.Rule{ 1, "Foo", x.Lit{"foo"} }`
-
-	rule.Check = func(r []rune, i int) rat.Result {
-		start := i
-		if !strings.HasPrefix(string(r[i:]), `foo`) {
-			return rat.Result{T: rule.ID, R: r, B: start, E: i, X: rat.ErrExpected{`foo`}}
-		}
-		return rat.Result{T: rule.ID, R: r, B: start, E: i}
-	}
-
-	buf := []rune(`foobar`)
-	rule.Print()
-	rule.Check(buf, 0).Print()
-	rule.Check(buf, 1).Print()
-
-	// Output:
-	// x.Rule{ 1, "Foo", x.Lit{"foo"} }
-	// {"T":1,"B":0,"E":0,"R":"foobar"}
-	// {"T":1,"B":1,"E":1,"X":"expected: foo","R":"foobar"}
-
-}
-
-func ExamplePack() {
-
-	g := rat.Pack(`foo`, x.Any{2}, `bar`, `foo`)
+	g := rat.Pack(x.To{`foo`})
 	g.Print()
-	//res := g.Check(`fooisbarfoo`)
-	//res.Print()
+
+	g.Scan(`...foo`).PrintText()
+	g.Scan(`...foo`).Print()
+	g.Scan(`foofoo`).PrintText()
+	g.Scan(`foofoo`).Print()
+	g.Scan(`.foofo`).PrintText()
+	g.Scan(`.foofo`).Print()
+
+	g.Scan(`...fo`).Print()
+	g.Scan(`...bar`).Print()
 
 	// Output:
-	// x.Seq{x.Rule{"Foo", "foo"}, x.Any{2}, "bar", x.Ref{"Foo"}}
-	// {"T":1,"B":0,"E":11,"C":[{"T":2,"B":0,"E":3},{"T":3,"B":3,"E":5},{"T":4,"B":5,"E":8},{"T":2,"B":8,"E":11}],"R":"fooisbarfoo"}
+	// x.To{x.Lit{"foo"}}
+	// ...
+	// {"B":0,"E":3,"R":"...foo"}
+	//
+	// {"B":0,"E":0,"R":"foofoo"}
+	// .
+	// {"B":0,"E":1,"R":".foofo"}
+	// {"B":0,"E":5,"X":"expected: x.To{x.Lit{\"foo\"}}","R":"...fo"}
+	// {"B":0,"E":6,"X":"expected: x.To{x.Lit{\"foo\"}}","R":"...bar"}
 
 }
-
-func ExamplePack_ref() {
-
-	g := rat.Pack(x.Rule{`Foo`, `foo`}, x.Any{2}, `bar`, x.Ref{`Foo`})
-	g.Print()
-	res := g.Check(`fooisbarfoo`)
-	res.Print()
-
-	// Output:
-	// some
-}
-*/
 
 func ExampleMakeAny() {
 
-	g := new(rat.Grammar)
+	g := new(rat.Grammar).Init()
 	rule := g.MakeAny(x.Any{3})
 	rule.Check([]rune(`..`), 0).Print()
 	rule.Check([]rune(`...`), 0).Print()
@@ -530,7 +533,7 @@ func ExampleMakeAny() {
 
 func ExampleMakeLit() {
 
-	g := new(rat.Grammar)
+	g := new(rat.Grammar).Init()
 	foo := g.MakeLit(`foo`)
 	foo.Print()
 	oo := g.MakeLit(`oo`)

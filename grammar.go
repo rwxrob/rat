@@ -36,9 +36,22 @@ var DefaultRuleName = `Rule`
 type Grammar struct {
 	Trace int              // activate logs for debug visibility
 	Rules map[string]*Rule // keyed to Rule.Name (not Text)
+	Saved map[string]*Rule // dynamically created literals from Save
 	Main  *Rule            // entry point for Check or Scan
 
 	ruleid int // auto-incrementing for ever unnamed rule added.
+}
+
+// Init initializes the Grammar emptying the Rules if any or creating
+// a new Rules map and setting internal rule ID to 0 and disabling
+// Trace, and emptying Main.
+func (g *Grammar) Init() *Grammar {
+	g.Trace = 0
+	g.Rules = map[string]*Rule{}
+	g.Saved = map[string]*Rule{}
+	g.Main = nil
+	g.ruleid = 0
+	return g
 }
 
 // String fulfills the fmt.Stringer interface by producing compilable Go
@@ -113,6 +126,10 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	// rat/x ("ratex") types as expressions
 	case x.Name:
 		return g.MakeNamed(v)
+	case x.Save:
+		return g.MakeSave(v)
+	case x.Val:
+		return g.MakeVal(v)
 	case x.Ref:
 		return g.MakeRef(v)
 	case x.Is:
@@ -139,10 +156,12 @@ func (g *Grammar) MakeRule(in any) *Rule {
 		return g.MakeMmx(v)
 	case x.Rep:
 		return g.MakeRep(v)
-	case x.Pos:
-		return g.MakePos(v)
-	case x.Neg:
-		return g.MakeNeg(v)
+	case x.See:
+		return g.MakeSee(v)
+	case x.Not:
+		return g.MakeNot(v)
+	case x.To:
+		return g.MakeTo(v)
 	case x.Any:
 		return g.MakeAny(v)
 	case x.Rng:
@@ -184,9 +203,6 @@ func (g *Grammar) AddRule(rule *Rule) *Rule {
 	if rule.Name == "" {
 		g.ruleid++
 		rule.Name = DefaultRuleName + strconv.Itoa(g.ruleid)
-	}
-	if g.Rules == nil {
-		g.Rules = map[string]*Rule{}
 	}
 	g.Rules[rule.Name] = rule
 	return rule
@@ -255,6 +271,74 @@ func (g *Grammar) MakeRef(in x.Ref) *Rule {
 
 	rule.Check = func(r []rune, i int) Result {
 		rule, has := g.Rules[key]
+		if has {
+			return rule.Check(r, i)
+		}
+		return Result{R: r, B: i, E: i, X: ErrExpected{in}}
+	}
+
+	return rule
+}
+
+func (g *Grammar) MakeSave(in x.Save) *Rule {
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageSave)
+	}
+
+	key, is := in[0].(string)
+	if !is {
+		panic(x.UsageSave)
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		rule, has := g.Rules[key]
+		if has {
+			res := rule.Check(r, i)
+			if res.X == nil {
+				g.Saved[key] = g.MakeLit(res.Text())
+			}
+			return res
+		}
+		return Result{R: r, B: i, E: i, X: ErrExpected{in}}
+	}
+
+	return rule
+}
+
+func (g *Grammar) MakeVal(in x.Val) *Rule {
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageVal)
+	}
+
+	key, is := in[0].(string)
+	if !is {
+		panic(x.UsageVal)
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		rule, has := g.Saved[key]
 		if has {
 			return rule.Check(r, i)
 		}
@@ -784,7 +868,7 @@ func (g *Grammar) MakeRep(in x.Rep) *Rule {
 	return rule
 }
 
-func (g *Grammar) MakePos(in x.Pos) *Rule {
+func (g *Grammar) MakeSee(in x.See) *Rule {
 
 	name := in.String()
 
@@ -797,7 +881,7 @@ func (g *Grammar) MakePos(in x.Pos) *Rule {
 	g.AddRule(rule)
 
 	if len(in) != 1 {
-		panic(x.UsagePos)
+		panic(x.UsageSee)
 	}
 
 	iname := x.String(in[0])
@@ -820,7 +904,7 @@ func (g *Grammar) MakePos(in x.Pos) *Rule {
 
 }
 
-func (g *Grammar) MakeNeg(in x.Neg) *Rule {
+func (g *Grammar) MakeNot(in x.Not) *Rule {
 
 	name := in.String()
 
@@ -833,7 +917,7 @@ func (g *Grammar) MakeNeg(in x.Neg) *Rule {
 	g.AddRule(rule)
 
 	if len(in) != 1 {
-		panic(x.UsageNeg)
+		panic(x.UsageNot)
 	}
 
 	iname := x.String(in[0])
@@ -848,6 +932,47 @@ func (g *Grammar) MakeNeg(in x.Neg) *Rule {
 		if res.X != nil {
 			return result
 		}
+		result.X = ErrExpected{in}
+		return result
+	}
+
+	return rule
+
+}
+
+func (g *Grammar) MakeTo(in x.To) *Rule {
+
+	name := in.String()
+
+	rule, has := g.Rules[name]
+	if has {
+		return rule
+	}
+
+	rule = &Rule{Name: name, Text: name}
+	g.AddRule(rule)
+
+	if len(in) != 1 {
+		panic(x.UsageTo)
+	}
+
+	iname := x.String(in[0])
+	irule, has := g.Rules[iname]
+	if !has {
+		irule = g.MakeRule(in[0])
+	}
+
+	rule.Check = func(r []rune, i int) Result {
+		result := Result{R: r, B: i, E: i}
+
+		for ; i < len(r); i++ {
+			res := irule.Check(r, i)
+			if res.X == nil {
+				return result
+			}
+			result.E++
+		}
+
 		result.X = ErrExpected{in}
 		return result
 	}

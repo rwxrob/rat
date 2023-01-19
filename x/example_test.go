@@ -99,6 +99,43 @@ func ExampleRef() {
 
 }
 
+// -------------------------------- Save -------------------------------
+
+func ExampleSave() {
+
+	_ = x.Name{`Foo`, x.Lit{`foo`}}
+	save := x.Save{`Foo`}
+	save.Print()
+
+	x.Save{false}.Print()
+	x.Save{}.Print()
+
+	// Output:
+	// x.Save{"Foo"}
+	// "%!USAGE: x.Save{name}"
+	// "%!USAGE: x.Save{name}"
+
+}
+
+// -------------------------------- Val -------------------------------
+
+func ExampleVal() {
+
+	_ = x.Name{`Foo`, x.Lit{`foo`}}
+	_ = x.Save{`Foo`}
+	val := x.Val{`Foo`}
+	val.Print()
+
+	x.Val{false}.Print()
+	x.Val{}.Print()
+
+	// Output:
+	// x.Val{"Foo"}
+	// "%!USAGE: x.Val{name}"
+	// "%!USAGE: x.Val{name}"
+
+}
+
 // -------------------------------- Is --------------------------------
 
 func aclass(r rune) bool { return true }
@@ -327,33 +364,48 @@ func ExampleRep() {
 
 }
 
-// -------------------------------- Pos -------------------------------
+// -------------------------------- See -------------------------------
 
-func ExamplePos() {
+func ExampleSee() {
 
-	x.Pos{`foo`}.Print()
-	x.Pos{}.Print()
-	x.Pos{`foo`, `bar`}.Print()
+	x.See{`foo`}.Print()
+	x.See{}.Print()
+	x.See{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Pos{x.Lit{"foo"}}
-	// "%!USAGE: x.Pos{rule}"
-	// "%!USAGE: x.Pos{rule}"
+	// x.See{x.Lit{"foo"}}
+	// "%!USAGE: x.See{rule}"
+	// "%!USAGE: x.See{rule}"
 
 }
 
-// -------------------------------- Neg -------------------------------
+// -------------------------------- Not -------------------------------
 
-func ExampleNeg() {
+func ExampleNot() {
 
-	x.Neg{`foo`}.Print()
-	x.Neg{}.Print()
-	x.Neg{`foo`, `bar`}.Print()
+	x.Not{`foo`}.Print()
+	x.Not{}.Print()
+	x.Not{`foo`, `bar`}.Print()
 
 	// Output:
-	// x.Neg{x.Lit{"foo"}}
-	// "%!USAGE: x.Neg{rule}"
-	// "%!USAGE: x.Neg{rule}"
+	// x.Not{x.Lit{"foo"}}
+	// "%!USAGE: x.Not{rule}"
+	// "%!USAGE: x.Not{rule}"
+
+}
+
+// -------------------------------- To --------------------------------
+
+func ExampleTo() {
+
+	x.To{`foo`}.Print()
+	x.To{}.Print()
+	x.To{`foo`, `bar`}.Print()
+
+	// Output:
+	// x.To{x.Lit{"foo"}}
+	// "%!USAGE: x.To{rule}"
+	// "%!USAGE: x.To{rule}"
 
 }
 
@@ -367,8 +419,8 @@ func ExampleAny() {
 
 	// Output:
 	// x.Any{5}
-	// "%!USAGE: x.Any{n} or x.Any{n, m}"
-	// "%!USAGE: x.Any{n} or x.Any{n, m}"
+	// "%!USAGE: x.Any{n} or x.Any{m, n} or x.Any{m, 0}"
+	// "%!USAGE: x.Any{n} or x.Any{m, n} or x.Any{m, 0}"
 
 }
 
@@ -381,9 +433,9 @@ func ExampleAny_minmax() {
 
 	// Output:
 	// x.Any{5, 10}
-	// "%!USAGE: x.Any{n} or x.Any{n, m}"
-	// "%!USAGE: x.Any{n} or x.Any{n, m}"
-	// "%!USAGE: x.Any{n} or x.Any{n, m}"
+	// "%!USAGE: x.Any{n} or x.Any{m, n} or x.Any{m, 0}"
+	// "%!USAGE: x.Any{n} or x.Any{m, n} or x.Any{m, 0}"
+	// "%!USAGE: x.Any{n} or x.Any{m, n} or x.Any{m, 0}"
 
 }
 

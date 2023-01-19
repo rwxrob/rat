@@ -51,7 +51,7 @@ import (
 // within the data passed so there is never wasteful redundancy. This
 // maximizes performance and minimizes memory utilization.
 //
-func Pack(seq ...any) *Grammar { return new(Grammar).Pack(seq...) }
+func Pack(seq ...any) *Grammar { return new(Grammar).Init().Pack(seq...) }
 
 // RuleMaker implementations must return a new Rule created from any
 // input (but usually from rat/x expressions and other Go types).

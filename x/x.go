@@ -1,12 +1,14 @@
 /*
 Package x (as in "expressions") contains the rat/x (pronounced "ratex")
-language in the form of Go []any types.  These type definitions allow any
-grammar that can be expresses in PEG (or PEGN) to be implemented
-entirely in highly performant, compilable Go code and easily rendered to
-any other language. This makes rat/x highly useful for generating PEG
-parsing code in any programming language, or as a replacement for
-regular expressions (which lack lookarounds and other PEG-capable
-constructs).
+language in the form of Go []any types. See rat.Pack examples to get
+started using them quickly.
+
+These type definitions allow any grammar that can be expresses in PEGN
+to be implemented entirely in highly performant, compilable Go
+code and easily rendered to any other language. This makes rat/x highly
+useful for generating PEG parsing code in any programming language, or
+as a replacement for regular expressions (which lack lookarounds and
+other PEG-capable constructs).
 
 Typed []any slices are used by convention to keep the syntax consistent.
 These can be thought of as the tokens that would result from tokenizing
@@ -16,8 +18,10 @@ types are used incorrectly the string representation contains the
 %!ERROR or %!USAGE prefix. Each type also implements a Print() method
 that is shorthand for fmt.Println(self).
 
-    Name - Foo <- rule or <:Foo rule >
-    Ref  - reference another rule by Name at runtime
+    Name - Foo <- rule
+	  Save - =rule
+	  Val	 - $rule
+    Ref  - Bar <- Foo
     Is   - boolean class function
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
@@ -29,10 +33,11 @@ that is shorthand for fmt.Println(self).
     Max  - rule{0,n}
     Mmx  - rule{m,n}
     Rep  - rule{n}
-    Pos  - &rule
-    Neg  - !rule
-    Any  - .{n} or .{m,n}
-    Rng  - [a-f] / [x43-x54] / [u3243-u4545]
+    See  - &rule
+    Not  - !rule
+    To   - .. rule
+    Any  - .{n} or .{m,n} or .{m,}
+		Rng  - [a-f] / [x43-x54] / [u3243-u4545]
     End  - !.
 
 See the documentation for each type for a details on syntax. Also see the included Examples.
@@ -183,16 +188,64 @@ func (it Name) String() string {
 
 func (it Name) Print() { fmt.Println(it) }
 
-// Ref refers to another rule by name and is evaluated at runtime
-// allowing reference to entire different rules to be used before they
-// are imported. This prevents having to assign rules to variables and
-// use them in subsequent rules. The same cached lookup is just done at
-// a different point during runtime.
+// Save saves the results of a successful rule as a rule representing
+// the literal output of that result allowing it to be used later with
+// Val. There can only be one saved result for any saved rule at a time.
+// Like Ref, the first argument must be a string matching the name of
+// a rule.
 //
 // PEGN
 //
-//     Foo     <= 'some' 'thing'
+//     FenceTok  <- ( '~' / BQ){3,8}
+//     Fenced    <- =FenceTok .. $FenceTok
+//
+type Save []any
+
+func (args Save) String() string {
+	switch len(args) {
+	case 1:
+		_, is := args[0].(string)
+		if !is {
+			return UsageSave
+		}
+		return fmt.Sprintf(`x.Save{%q}`, args[0])
+	default:
+		return UsageSave
+	}
+}
+
+func (it Save) Print() { fmt.Println(it) }
+
+// Val uses a literal rule created with Save.
+type Val []any
+
+func (args Val) String() string {
+	switch len(args) {
+	case 1:
+		_, is := args[0].(string)
+		if !is {
+			return UsageVal
+		}
+		return fmt.Sprintf(`x.Val{%q}`, args[0])
+	default:
+		return UsageVal
+	}
+}
+
+func (it Val) Print() { fmt.Println(it) }
+
+// Ref refers to another rule by name and is evaluated at runtime
+// allowing reference to entirely different rules to be used before they
+// are imported. This prevents having to assign rules to variables and
+// use them in subsequent rules. This also allows looking up dynamically
+// created rules such as those from Save ($Foo). The same cached lookup
+// is just done at a different point during runtime.
+//
+// PEGN
+//
+//     Foo     <- 'some' 'thing'
 //     Another <- Foo 'else'
+//     WithVar <- =Foo 'else' $Foo
 //
 type Ref []any
 
@@ -518,41 +571,61 @@ func (it Rep) String() string {
 
 func (it Rep) Print() { fmt.Println(it) }
 
-// Pos represents a positive lookahead assertion. The end of the result
+// See represents a positive lookahead assertion. The end of the result
 // is always unchanged, but an error set if rule assertion fails.
 //
 // PEGN
 //
 //     &rule
 //
-type Pos []any
+type See []any
 
-func (it Pos) String() string {
+func (it See) String() string {
 	if len(it) != 1 {
-		return UsagePos
+		return UsageSee
 	}
-	return fmt.Sprintf(`x.Pos{%v}`, String(it[0]))
+	return fmt.Sprintf(`x.See{%v}`, String(it[0]))
 }
 
-func (it Pos) Print() { fmt.Println(it) }
+func (it See) Print() { fmt.Println(it) }
 
-// Neg represents a negative lookahead assertion. The end of the result
+// Not represents a negative lookahead assertion. The end of the result
 // is always unchanged, but an error set if the rule assertion is true.
 //
 // PEGN
 //
 //     !rule
 //
-type Neg []any
+type Not []any
 
-func (it Neg) String() string {
+func (it Not) String() string {
 	if len(it) != 1 {
-		return UsageNeg
+		return UsageNot
 	}
-	return fmt.Sprintf(`x.Neg{%v}`, String(it[0]))
+	return fmt.Sprintf(`x.Not{%v}`, String(it[0]))
 }
 
-func (it Neg) Print() { fmt.Println(it) }
+func (it Not) Print() { fmt.Println(it) }
+
+// To represents every rune until the rule matches successfully. This is
+// essentially shorthand for the same done with looping negative
+// expression lookaheads. Note that the rule itself is never included in
+// the results (but usually is scanned itself immediately after).
+//
+// PEGN
+//
+//    .. rule
+//
+type To []any
+
+func (it To) String() string {
+	if len(it) != 1 {
+		return UsageTo
+	}
+	return fmt.Sprintf(`x.To{%v}`, String(it[0]))
+}
+
+func (it To) Print() { fmt.Println(it) }
 
 // Any represents a specific number of any valid rune. If more than one
 // argument, then first is minimum and second maximum. If the maximum
