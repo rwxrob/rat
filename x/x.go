@@ -362,12 +362,12 @@ func (rules Seq) String() string {
 
 func (rules Seq) Print() { fmt.Println(rules) }
 
-// One represents one of a set of possible matching rules. If more than
-// one value assume combined values are an array of []any. If only
-// a single value and that value is an []any slice assume each value are
-// the values of the set (somewhat like []any{}...). If just a single value
-// that is anything but an []any slice, unwrap and handle as if just a single
-// rule.
+// One represents one of a set of possible matching rules in order from
+// left to right. If more than one value assume combined values are an
+// array of []any. If only a single value and that value is an []any
+// slice assume each value are the values of the set (somewhat like []
+// any{}...). If just a single value that is anything but an []any slice,
+// unwrap and handle as if just a single rule.
 //
 // PEGN
 //
