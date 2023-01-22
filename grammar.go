@@ -120,8 +120,8 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	switch v := in.(type) {
 
 	// text (most common)
-	case string, []rune, []byte, rune, x.Lit:
-		return g.MakeLit(v)
+	case string, []rune, []byte, rune, x.Str:
+		return g.MakeStr(v)
 
 	// rat/x ("ratex") types as expressions
 	case x.Name:
@@ -170,14 +170,14 @@ func (g *Grammar) MakeRule(in any) *Rule {
 		return g.MakeEnd(v)
 
 	case fmt.Stringer:
-		return g.MakeLit(v.String())
+		return g.MakeStr(v.String())
 
 	case bool:
-		return g.MakeLit(fmt.Sprintf(`%v`, v))
+		return g.MakeStr(fmt.Sprintf(`%v`, v))
 
 	// anything that has an %q form
 	default:
-		return g.MakeLit(fmt.Sprintf(`%q`, v))
+		return g.MakeStr(fmt.Sprintf(`%q`, v))
 
 	}
 }
@@ -306,7 +306,7 @@ func (g *Grammar) MakeSave(in x.Save) *Rule {
 		if has {
 			res := rule.Check(r, i)
 			if res.X == nil {
-				g.Saved[key] = g.MakeLit(res.Text())
+				g.Saved[key] = g.MakeStr(res.Text())
 			}
 			return res
 		}
@@ -508,7 +508,7 @@ func (g *Grammar) MakeOpt(in x.Opt) *Rule {
 	return rule
 }
 
-func (g *Grammar) MakeLit(in any) *Rule {
+func (g *Grammar) MakeStr(in any) *Rule {
 
 	var val string
 
@@ -521,12 +521,12 @@ func (g *Grammar) MakeLit(in any) *Rule {
 		val = string(v)
 	case rune:
 		val = string(v)
-	case x.Lit:
-		return g.MakeLit(x.JoinLit(v...))
+	case x.Str:
+		return g.MakeStr(x.JoinStr(v...))
 
 	}
 
-	name := `x.Lit{"` + val + `"}`
+	name := `x.Str{"` + val + `"}`
 
 	rule, has := g.Rules[name]
 	if has {

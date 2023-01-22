@@ -8,7 +8,7 @@ var (
 	UsageRef    = `"%!USAGE: x.Ref{name}"`
 	UsageIs     = `"%!USAGE: namedFunc or x.IsFunc or x.Is{namedFunc}"`
 	UsageAny    = `"%!USAGE: x.Any{n} or x.Any{m, n} or x.Any{m, 0}"`
-	UsageLit    = `"%!USAGE: x.Lit{...any}"`
+	UsageStr    = `"%!USAGE: x.Str{...any}"`
 	UsageSeq    = `"%!USAGE: x.Seq{...rule}"`
 	UsageOne    = `"%!USAGE: x.One{...rule}"`
 	UsageOpt    = `"%!USAGE: x.Opt{rule}"`

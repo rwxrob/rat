@@ -76,12 +76,12 @@ func ExamplePack_one() {
 	g.Scan(`baz`).Print()
 
 	// Output:
-	// x.One{x.Lit{"foo"}, x.Lit{"bar"}}
+	// x.One{x.Str{"foo"}, x.Str{"bar"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
 	// bar
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barfoo"}
-	// {"B":0,"E":0,"X":"expected: x.One{x.Lit{\"foo\"}, x.Lit{\"bar\"}}","R":"baz"}
+	// {"B":0,"E":0,"X":"expected: x.One{x.Str{\"foo\"}, x.Str{\"bar\"}}","R":"baz"}
 
 }
 
@@ -96,7 +96,7 @@ func ExamplePach_lit_Boolean() {
 	g.Scan(`TRUE`).Print()
 
 	// Output:
-	// x.Lit{"true"}
+	// x.Str{"true"}
 	// true
 	// {"B":0,"E":4,"R":"true"}
 	// {"B":0,"E":0,"X":"expected: t","R":"false"}
@@ -112,7 +112,7 @@ func ExamplePack_named() {
 	g.Scan(`true`).Print()
 
 	// Output:
-	// x.Name{"foo", x.Lit{"true"}}
+	// x.Name{"foo", x.Str{"true"}}
 	// {"N":"foo","B":0,"E":4,"R":"true"}
 
 }
@@ -122,16 +122,16 @@ func ExamplePack_ref() {
 	g.MakeRule(x.Name{`Foo`, `foo`})
 	g.Print()
 
-	g.Rules[`x.Lit{"foo"}`].Print()
+	g.Rules[`x.Str{"foo"}`].Print()
 	g.Rules[`Foo`].Print()
 
 	g.Scan(`foo`).Print()
-	g.Rules[`x.Lit{"foo"}`].Scan(`foo`).Print()
+	g.Rules[`x.Str{"foo"}`].Scan(`foo`).Print()
 
 	// Output:
 	// x.Ref{"Foo"}
-	// x.Lit{"foo"}
-	// x.Name{"Foo", x.Lit{"foo"}}
+	// x.Str{"foo"}
+	// x.Name{"Foo", x.Str{"foo"}}
 	// {"N":"Foo","B":0,"E":3,"R":"foo"}
 	// {"B":0,"E":3,"R":"foo"}
 
@@ -184,12 +184,12 @@ func ExamplePack_one_Named() {
 	g.Scan(`fobar`).Print()
 
 	// Output:
-	// x.Name{"Foo", x.One{x.Lit{"foo"}, x.Lit{"bar"}}}
+	// x.Name{"Foo", x.One{x.Str{"foo"}, x.Str{"bar"}}}
 	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
 	// foo
 	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barrr"}
 	// bar
-	// {"N":"Foo","B":0,"E":0,"X":"expected: x.One{x.Lit{\"foo\"}, x.Lit{\"bar\"}}","R":"fobar"}
+	// {"N":"Foo","B":0,"E":0,"X":"expected: x.One{x.Str{\"foo\"}, x.Str{\"bar\"}}","R":"fobar"}
 
 }
 
@@ -233,7 +233,7 @@ func ExamplePack_mmx() {
 	g.Scan(`barfoofoo`).Print()
 
 	// Output:
-	// x.Mmx{1, 3, x.Lit{"foo"}}
+	// x.Mmx{1, 3, x.Str{"foo"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
 	// foofoo
@@ -242,7 +242,7 @@ func ExamplePack_mmx() {
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
 	// foofoofoo
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
-	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, x.Lit{\"foo\"}}","R":"barfoofoo"}
+	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, x.Str{\"foo\"}}","R":"barfoofoo"}
 
 }
 
@@ -266,7 +266,7 @@ func ExamplePack_mn1() {
 	g.Scan(`barfoofoo`).Print()
 
 	// Output:
-	// x.Mn1{x.Lit{"foo"}}
+	// x.Mn1{x.Str{"foo"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
 	// foofoo
@@ -275,7 +275,7 @@ func ExamplePack_mn1() {
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
 	// foofoofoofoo
 	// {"B":0,"E":12,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
-	// {"B":0,"E":0,"X":"expected: x.Mn1{x.Lit{\"foo\"}}","R":"barfoofoo"}
+	// {"B":0,"E":0,"X":"expected: x.Mn1{x.Str{\"foo\"}}","R":"barfoofoo"}
 
 }
 
@@ -299,7 +299,7 @@ func ExamplePack_mn0() {
 	g.Scan(`barfoofoo`).Print()
 
 	// Output:
-	// x.Mn0{x.Lit{"foo"}}
+	// x.Mn0{x.Str{"foo"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
 	// foofoo
@@ -327,13 +327,13 @@ func ExamplePack_min() {
 	g.Scan(`barfoofoo`).Print()
 
 	// Output:
-	// x.Min{2, x.Lit{"foo"}}
+	// x.Min{2, x.Str{"foo"}}
 	// foofoo
 	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
 	// foofoofoo
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
-	// {"B":0,"E":3,"X":"expected: x.Min{2, x.Lit{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foo"}
-	// {"B":0,"E":0,"X":"expected: x.Min{2, x.Lit{\"foo\"}}","R":"barfoofoo"}
+	// {"B":0,"E":3,"X":"expected: x.Min{2, x.Str{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foo"}
+	// {"B":0,"E":0,"X":"expected: x.Min{2, x.Str{\"foo\"}}","R":"barfoofoo"}
 
 }
 
@@ -354,14 +354,14 @@ func ExamplePack_max() {
 	g.Scan(`foofoofoo`).Print()
 
 	// Output:
-	// x.Max{2, x.Lit{"foo"}}
+	// x.Max{2, x.Str{"foo"}}
 	// foo
 	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
 	// foofoo
 	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
 	//
 	// {"B":0,"E":0,"R":"barfoofoo"}
-	// {"B":0,"E":6,"X":"expected: x.Max{2, x.Lit{\"foo\"}}","C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
+	// {"B":0,"E":6,"X":"expected: x.Max{2, x.Str{\"foo\"}}","C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
 
 }
 
@@ -377,11 +377,11 @@ func ExamplePack_pos() {
 	g.Scan(`bar`).Print()
 
 	// Output:
-	// x.See{x.Lit{"foo"}}
+	// x.See{x.Str{"foo"}}
 	//
 	// {"B":0,"E":0,"R":"fooooo"}
-	// {"B":0,"E":0,"X":"expected: x.See{x.Lit{\"foo\"}}","R":"fo"}
-	// {"B":0,"E":0,"X":"expected: x.See{x.Lit{\"foo\"}}","R":"bar"}
+	// {"B":0,"E":0,"X":"expected: x.See{x.Str{\"foo\"}}","R":"fo"}
+	// {"B":0,"E":0,"X":"expected: x.See{x.Str{\"foo\"}}","R":"bar"}
 
 }
 
@@ -399,12 +399,12 @@ func ExamplePack_neg() {
 	g.Scan(`fooooo`).Print()
 
 	// Output:
-	// x.Not{x.Lit{"foo"}}
+	// x.Not{x.Str{"foo"}}
 	//
 	// {"B":0,"E":0,"R":"fo"}
 	//
 	// {"B":0,"E":0,"R":"bar"}
-	// {"B":0,"E":0,"X":"expected: x.Not{x.Lit{\"foo\"}}","R":"fooooo"}
+	// {"B":0,"E":0,"X":"expected: x.Not{x.Str{\"foo\"}}","R":"fooooo"}
 
 }
 
@@ -456,7 +456,7 @@ func ExamplePack_opt() {
 	g.Scan(`bar`).Print()
 
 	// Output:
-	// x.Opt{x.Lit{"foo"}}
+	// x.Opt{x.Str{"foo"}}
 	// foo
 	// {"B":0,"E":3,"R":"foo"}
 	//
@@ -475,10 +475,10 @@ func ExamplePack_rep() {
 	g.Scan(`foobar`).Print()
 
 	// Output:
-	// x.Rep{2, x.Lit{"foo"}}
+	// x.Rep{2, x.Str{"foo"}}
 	// foofoo
 	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
-	// {"B":0,"E":3,"X":"expected: x.Rep{2, x.Lit{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foobar"}
+	// {"B":0,"E":3,"X":"expected: x.Rep{2, x.Str{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foobar"}
 
 }
 
@@ -498,15 +498,15 @@ func ExamplePack_to() {
 	g.Scan(`...bar`).Print()
 
 	// Output:
-	// x.To{x.Lit{"foo"}}
+	// x.To{x.Str{"foo"}}
 	// ...
 	// {"B":0,"E":3,"R":"...foo"}
 	//
 	// {"B":0,"E":0,"R":"foofoo"}
 	// .
 	// {"B":0,"E":1,"R":".foofo"}
-	// {"B":0,"E":5,"X":"expected: x.To{x.Lit{\"foo\"}}","R":"...fo"}
-	// {"B":0,"E":6,"X":"expected: x.To{x.Lit{\"foo\"}}","R":"...bar"}
+	// {"B":0,"E":5,"X":"expected: x.To{x.Str{\"foo\"}}","R":"...fo"}
+	// {"B":0,"E":6,"X":"expected: x.To{x.Str{\"foo\"}}","R":"...bar"}
 
 }
 
@@ -531,12 +531,12 @@ func ExampleMakeAny() {
 
 }
 
-func ExampleMakeLit() {
+func ExampleMakeStr() {
 
 	g := new(rat.Grammar).Init()
-	foo := g.MakeLit(`foo`)
+	foo := g.MakeStr(`foo`)
 	foo.Print()
-	oo := g.MakeLit(`oo`)
+	oo := g.MakeStr(`oo`)
 	oo.Print()
 	foo.Check([]rune(`foo`), 0).Print()
 	foo.Check([]rune(`fooo`), 0).Print()
@@ -550,15 +550,15 @@ func ExampleMakeLit() {
 	}
 
 	// Unordered Output:
-	// x.Lit{"foo"}
-	// x.Lit{"oo"}
+	// x.Str{"foo"}
+	// x.Str{"oo"}
 	// {"B":0,"E":3,"R":"foo"}
 	// {"B":0,"E":3,"R":"fooo"}
 	// {"B":0,"E":2,"X":"expected: o","R":"fo"}
 	// {"B":0,"E":0,"X":"expected: o","R":"fooo"}
 	// {"B":1,"E":3,"R":"fooo"}
 	// {"B":2,"E":4,"R":"fooo"}
-	// key: "x.Lit{\"foo\"}" name: "x.Lit{\"foo\"}" text: "x.Lit{\"foo\"}"
-	// key: "x.Lit{\"oo\"}" name: "x.Lit{\"oo\"}" text: "x.Lit{\"oo\"}"
+	// key: "x.Str{\"foo\"}" name: "x.Str{\"foo\"}" text: "x.Str{\"foo\"}"
+	// key: "x.Str{\"oo\"}" name: "x.Str{\"oo\"}" text: "x.Str{\"oo\"}"
 
 }

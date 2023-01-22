@@ -26,7 +26,7 @@ that is shorthand for fmt.Println(self).
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
     Opt  - rule?
-    Lit  - ('foo' SP x20 u2563 CR LF)
+    Str  - ('foo' SP x20 u2563 CR LF)
     Mn1  - rule+
     Mn0  - rule*
     Min  - rule{n,}
@@ -65,7 +65,7 @@ import (
 )
 
 // String returns a valid rat/x type for anything passed including all
-// valid Go primitives as Lit (string) types. Generally, this is the
+// valid Go primitives as Str (string) types. Generally, this is the
 // fmt.Sprintf %v values wrapped in double quotes. Anything with an
 // fmt.Stringer implementation is assumed to already be acceptable rat/x
 // notation. If input is an []any or []string slice it is interpreted as
@@ -103,19 +103,19 @@ func String(it any) string {
 		return str + `}`
 
 	case string:
-		return fmt.Sprintf(`x.Lit{%q}`, v)
+		return fmt.Sprintf(`x.Str{%q}`, v)
 
 	case []rune:
-		return fmt.Sprintf(`x.Lit{%q}`, string(v))
+		return fmt.Sprintf(`x.Str{%q}`, string(v))
 
 	case []byte:
-		return fmt.Sprintf(`x.Lit{%q}`, string(v))
+		return fmt.Sprintf(`x.Str{%q}`, string(v))
 
 	case rune:
-		return fmt.Sprintf(`x.Lit{%q}`, string(v))
+		return fmt.Sprintf(`x.Str{%q}`, string(v))
 
 	case bool:
-		return fmt.Sprintf(`x.Lit{"%v"}`, v)
+		return fmt.Sprintf(`x.Str{"%v"}`, v)
 
 	case func(r rune) bool:
 		return `x.Is{` + FuncName(v) + `}`
@@ -124,15 +124,15 @@ func String(it any) string {
 		return `x.Is{` + FuncName(v) + `}`
 
 	default:
-		return fmt.Sprintf(`x.Lit{"%v"}`, v)
+		return fmt.Sprintf(`x.Str{"%v"}`, v)
 
 	}
 }
 
-// JoinLit takes the string form of each argument (by passing to String)
+// JoinStr takes the string form of each argument (by passing to String)
 // and joins. Assumes types passed are literals. Does not work for other
 // rat/x expressions.
-func JoinLit(args ...any) string {
+func JoinStr(args ...any) string {
 	var str string
 	for _, it := range args {
 		buf := String(it)
@@ -410,7 +410,7 @@ func (it Opt) String() string {
 
 func (rules Opt) Print() { fmt.Println(rules) }
 
-// Lit represents any literal and allows combining literals from any
+// Str represents any literal and allows combining literals from any
 // other type into a single rule (see String). This is useful when
 // a number of independent strings (or other types that are represented
 // as strings) are wanted as a single new rule. Otherwise, each
@@ -423,13 +423,13 @@ func (rules Opt) Print() { fmt.Println(rules) }
 //
 //     ('foo' SP x20 u2563 CR LF)
 //
-type Lit []any
+type Str []any
 
-func (rules Lit) String() string {
+func (rules Str) String() string {
 	switch len(rules) {
 
 	case 0:
-		return UsageLit
+		return UsageStr
 
 	case 1:
 		it, is := rules[0].([]any)
@@ -437,17 +437,17 @@ func (rules Lit) String() string {
 			return String(rules[0])
 		}
 		if len(it) == 0 {
-			return UsageLit
+			return UsageStr
 		}
-		return `x.Lit{"` + JoinLit(it...) + `"}`
+		return `x.Str{"` + JoinStr(it...) + `"}`
 
 	default:
-		return `x.Lit{"` + JoinLit(rules...) + `"}`
+		return `x.Str{"` + JoinStr(rules...) + `"}`
 	}
 
 }
 
-func (s Lit) Print() { fmt.Println(s) }
+func (s Str) Print() { fmt.Println(s) }
 
 // Mn1 represents one or more of a single rule. If the first
 // and only value is an []any slice assume it is to be expanded
