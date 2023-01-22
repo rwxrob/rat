@@ -65,6 +65,34 @@ func ExampleString_any_Slice() {
 
 }
 
+func ExampleJoinStr() {
+
+	fmt.Println(x.JoinStr("foo", "bar"))
+	fmt.Println(x.JoinStr(x.Str{"foo"}, x.Str{"bar"}))
+	fmt.Println(x.JoinStr(true, false))
+
+	// Output:
+	// foobar
+	// foobar
+	// truefalse
+
+}
+
+func ExampleCombineStr() {
+
+	bunch := []any{false, true, 42, x.Val{`Foo`}, "foo", x.Str{"bar"}}
+	comb := x.CombineStr(bunch...)
+	for i, it := range comb {
+		fmt.Printf("%v: %v\n", i, it)
+	}
+
+	// Output:
+	// 0: x.Str{"falsetrue42"}
+	// 1: x.Val{"Foo"}
+	// 2: x.Str{"foobar"}
+
+}
+
 // ------------------------------- Name -------------------------------
 
 func ExampleName() {

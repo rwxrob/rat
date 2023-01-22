@@ -35,8 +35,8 @@ that is shorthand for fmt.Println(self).
     Rep  - rule{n}
     See  - &rule
     Not  - !rule
-    To   - .. rule
-    Any  - .{n} or .{m,n} or .{m,}
+    To   - .. rule or ..+ or ..* or ..? or ..{n} or ..{m,n} or ..{m,} or ..{,n}
+    Any  - . or .+ or .* or .? or .{n} or .{m,n} or .{m,} or .{,n}
 		Rng  - [a-f] / [x43-x54] / [u3243-u4545]
     End  - !.
 
@@ -141,6 +141,33 @@ func JoinStr(args ...any) string {
 	return str
 }
 
+// CombineStr returns a new slice with all of the subsequent Str
+// compatible types joined together into a single Str type.
+func CombineStr(args ...any) []any {
+	rules := []any{}
+	comb := []any{}
+	var combining bool
+	for _, it := range args {
+		switch it.(type) {
+		case Name, Save, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
+			Max, Mmx, Rep, See, Not, To, Any, Rng, End:
+			if combining {
+				rules = append(rules, `x.Str{"`+JoinStr(comb...)+`"}`)
+				comb = []any{}
+				combining = false
+			}
+			rules = append(rules, it)
+		default:
+			combining = true
+			comb = append(comb, it)
+		}
+	}
+	if combining {
+		rules = append(rules, `x.Str{"`+JoinStr(comb...)+`"}`)
+	}
+	return rules
+}
+
 // Name encapsulates another Result with a name. In PEGN these are
 // called "significant" (<=) because they can be easily found in the
 // parsed results tree. Names can be any valid Go string but keeping to
@@ -234,12 +261,16 @@ func (args Val) String() string {
 
 func (it Val) Print() { fmt.Println(it) }
 
-// Ref refers to another rule by name and is evaluated at runtime
+// Ref refers to another rule by name and is always evaluated at runtime
 // allowing reference to entirely different rules to be used before they
 // are imported. This prevents having to assign rules to variables and
 // use them in subsequent rules. This also allows looking up dynamically
 // created rules such as those from Save ($Foo). The same cached lookup
 // is just done at a different point during runtime.
+//
+// Note that use of Ref should be avoided when the rule referenced is
+// available at Go compile or init time to avoid the unnecessary
+// memoization and extra lookup of that rule.
 //
 // PEGN
 //
@@ -324,11 +355,29 @@ func (it Is) Print() { fmt.Println(it) }
 // set (somewhat like []any{}...). If just a single value that is anything
 // but an [] any slice, unwrap and handle as if just a single rule.
 //
+// Subsequent Str compatible types are joined together. The following
+// definitions are equivalent:
+//
+//     x.Seq{'😀', "smile", '\x20', x.Str{`please`}, '\u0020', true, 42}
+//     x.Seq{x.Str{"😀smile please true42"}}
+//     x.Str{"😀smile please true42"}
+//
+// Note that none of the rat/x types are Str compatible except the Str
+// type itself and will break up strings if they occur between Str
+// compatible types. This includes Ref and Val types which must be
+// evaluated at runtime:
+//
+//     x.Seq{"some", "thing"}                   // x.Str{"something"}
+//     x.Seq{"some", x.Opt{'\x20'}, "thing"}    // no change
+//     x.Seq{"some", x.Ref{`Foo`}, "thing"}     // no change, even Str
+//     x.Seq{"some", x.Val{`Foo`}, "thing"}     // no change, even Str
+//
 // PEGN
 //
+//     Foo <- rule1 rule2
 //     Foo <- (rule1 rule2)
 //
-type Seq []any // (rule1 rule2)
+type Seq []any
 
 func (rules Seq) String() string {
 	switch len(rules) {
@@ -343,18 +392,24 @@ func (rules Seq) String() string {
 		case 1:
 			return String(it[0])
 		default:
+			it := CombineStr(it)
 			str := `x.Seq{` + String(it[0])
-			for _, rule := range it[1:] {
-				str += `, ` + String(rule)
+			if len(it) > 1 {
+				for _, rule := range it[1:] {
+					str += `, ` + String(rule)
+				}
 			}
 			return str + `}`
 		}
 	case 0:
 		return UsageSeq
 	default:
+		rules := CombineStr(rules)
 		str := `x.Seq{` + String(rules[0])
-		for _, rule := range rules[1:] {
-			str += `, ` + String(rule)
+		if len(rules) > 1 {
+			for _, rule := range rules[1:] {
+				str += `, ` + String(rule)
+			}
 		}
 		return str + `}`
 	}
@@ -425,14 +480,13 @@ func (it Opt) String() string {
 
 func (rules Opt) Print() { fmt.Println(rules) }
 
-// Str represents any literal and allows combining literals from any
-// other type into a single rule (see String). This is useful when
-// a number of independent strings (or other types that are represented
-// as strings) are wanted as a single new rule. Otherwise, each
-// independent string will be considered a separate rule with its own
-// result. This is akin to a dynamic join that is evaluated at the time
-// of the check assertion. If the first and only value is an []any slice
-// assume it is to be expanded ([]any{}...).
+// Str represents a sequence of specific runes and allows combining from
+// any other type into a single rule by rendering the type as its Go
+// string equivalent. All values are combined into a single Go string.
+// This is useful when a number of independent strings (or other types
+// that are represented as strings) are wanted as a single new rule.
+// If the first and only value is an []any slice assume it is to be
+// expanded ([]any{}...).
 //
 // PEGN
 //
