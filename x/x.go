@@ -377,10 +377,25 @@ type One []any
 
 func (rules One) String() string {
 	switch len(rules) {
+	case 1:
+		it, isslice := rules[0].([]any)
+		if !isslice {
+			return String(rules[0])
+		}
+		switch len(it) {
+		case 0:
+			return UsageOne
+		case 1:
+			return String(it[0])
+		default:
+			str := `x.One{` + String(it[0])
+			for _, rule := range it[1:] {
+				str += `, ` + String(rule)
+			}
+			return str + `}`
+		}
 	case 0:
 		return UsageOne
-	case 1:
-		return String(rules[0])
 	default:
 		str := `x.One{` + String(rules[0])
 		for _, rule := range rules[1:] {
