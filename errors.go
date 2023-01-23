@@ -22,6 +22,12 @@ func (e ErrArgs) Error() string {
 	return fmt.Sprintf(ErrArgsT, e.any)
 }
 
+// -------------------------- ErrNoCheckFunc --------------------------
+
+type ErrNoCheckFunc struct{ V any }
+
+func (e ErrNoCheckFunc) Error() string { return fmt.Sprintf(ErrNoCheckFuncT, e.V) }
+
 // ---------------------------- ErrNotFound ---------------------------
 
 type ErrNotFound struct{ any }

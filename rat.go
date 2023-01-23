@@ -92,6 +92,7 @@ func (r Rule) Print() { fmt.Println(r) }
 
 func (r Rule) Scan(in any) Result {
 	var runes []rune
+
 	switch v := in.(type) {
 	case string:
 		runes = []rune(v)
@@ -105,6 +106,9 @@ func (r Rule) Scan(in any) Result {
 			return Result{X: err}
 		}
 		runes = []rune(string(buf))
+	}
+	if r.Check == nil {
+		return Result{X: ErrNoCheckFunc{r}}
 	}
 	return r.Check(runes, 0)
 }

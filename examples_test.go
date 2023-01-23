@@ -85,7 +85,7 @@ func ExamplePack_one() {
 
 }
 
-func ExamplePach_lit_Boolean() {
+func ExamplePach_str_Boolean() {
 
 	g := rat.Pack(true)
 	g.Print()
@@ -101,6 +101,32 @@ func ExamplePach_lit_Boolean() {
 	// {"B":0,"E":4,"R":"true"}
 	// {"B":0,"E":0,"X":"expected: t","R":"false"}
 	// {"B":0,"E":0,"X":"expected: t","R":"TRUE"}
+
+}
+
+func ExamplePach_str_Combined() {
+
+	g := rat.Pack(x.Str{true, false, 42, `foo`})
+	g1 := rat.Pack(true, false, 42, `foo`) // works cuz seq def of strs is joined
+	g.Print()
+	g1.Print()
+
+	g.Scan(`truefalse42foowho`).PrintText()
+	g1.Scan(`truefalse42foowho`).PrintText()
+	g.Scan(`truefalse42foowho`).Print()
+	g1.Scan(`truefalse42foowho`).Print()
+	g.Scan(`true`).Print()
+	g1.Scan(`true`).Print()
+
+	// Output:
+	// x.Str{"truefalse42foo"}
+	// x.Str{"truefalse42foo"}
+	// truefalse42foo
+	// truefalse42foo
+	// {"B":0,"E":14,"R":"truefalse42foowho"}
+	// {"B":0,"E":14,"R":"truefalse42foowho"}
+	// {"B":0,"E":4,"X":"expected: f","R":"true"}
+	// {"B":0,"E":4,"X":"expected: f","R":"true"}
 
 }
 
@@ -193,7 +219,7 @@ func ExamplePack_one_Named() {
 
 }
 
-func ExamplePack_isfunc() {
+func ExamplePack_is() {
 
 	IsPrint := unicode.IsPrint
 
@@ -210,6 +236,27 @@ func ExamplePack_isfunc() {
 	// f
 	// {"B":0,"E":1,"R":"foo"}
 	// {"B":0,"E":0,"X":"expected: x.Is{IsPrint}","R":"\x00foo"}
+
+}
+
+func ExamplePack_seq() {
+
+	g := rat.Pack(`foo`, `bar`, x.One{true, false}, x.Opt{`baz`})
+	g.Print()
+
+	g.Scan(`foobartrue`).PrintText()
+	g.Scan(`foobartruebaz`).PrintText()
+	g.Scan(`foobarfalsebaz`).PrintText()
+	g.Scan(`foo`).Print()
+	g.Scan(`foobarbaz`).PrintError()
+
+	// Output:
+	// x.Seq{x.Str{"foobar"}, x.One{x.Str{"true"}, x.Str{"false"}}, x.Opt{x.Str{"baz"}}}
+	// foobartrue
+	// foobartruebaz
+	// foobarfalsebaz
+	// {"B":0,"E":3,"X":"expected: b","C":[{"B":0,"E":3,"X":"expected: b"}],"R":"foo"}
+	// expected: x.One{x.Str{"true"}, x.Str{"false"}}
 
 }
 
@@ -365,7 +412,7 @@ func ExamplePack_max() {
 
 }
 
-func ExamplePack_pos() {
+func ExamplePack_see() {
 
 	g := rat.Pack(x.See{`foo`})
 	g.Print()
@@ -385,7 +432,7 @@ func ExamplePack_pos() {
 
 }
 
-func ExamplePack_neg() {
+func ExamplePack_not() {
 
 	g := rat.Pack(x.Not{`foo`})
 	g.Print()

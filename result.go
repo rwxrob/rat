@@ -121,6 +121,9 @@ func (m Result) Print() { fmt.Println(m) }
 // PrintText is short for fmt.Println(m.Text()).
 func (m Result) PrintText() { fmt.Println(m.Text()) }
 
+// PrintError is short for fmt.Println(m.X) but adds position.
+func (m Result) PrintError() { fmt.Println(m.X) }
+
 // Text returns the text between beginning (B) and ending (E)
 // (non-inclusively) It is a shortcut for
 // string(res.R[res.B:res.E]).

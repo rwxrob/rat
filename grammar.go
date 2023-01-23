@@ -382,6 +382,19 @@ func (g *Grammar) MakeIs(in x.Is) *Rule {
 
 func (g *Grammar) MakeSeq(seq x.Seq) *Rule {
 
+	if len(seq) == 1 {
+		it, is := seq[0].([]any)
+		if !is {
+			return g.MakeRule(seq[0])
+		}
+		seq = it
+	}
+
+	seq = x.CombineStr(seq...)
+	if len(seq) == 1 {
+		return g.MakeRule(seq[0])
+	}
+
 	name := seq.String()
 
 	rule, has := g.Rules[name]
