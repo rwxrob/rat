@@ -207,6 +207,7 @@ func ExampleIs() {
 func ExampleSeq() {
 
 	x.Seq{`foo`, false, `bar`}.Print()
+	x.Seq{`foo`, x.One{false, true}, `bar`}.Print()
 	x.Seq{[]any{`foo`, `bar`}}.Print()
 	x.Seq{[]any{`foo`}}.Print()
 	x.Seq{`foo`}.Print()
@@ -214,8 +215,9 @@ func ExampleSeq() {
 	x.Seq{[]any{}}.Print()
 
 	// Output:
-	// x.Seq{x.Str{"foo"}, x.Str{"false"}, x.Str{"bar"}}
-	// x.Seq{x.Str{"foo"}, x.Str{"bar"}}
+	// x.Str{"foofalsebar"}
+	// x.Seq{x.Str{"foo"}, x.One{x.Str{"false"}, x.Str{"true"}}, x.Str{"bar"}}
+	// x.Str{"foobar"}
 	// x.Str{"foo"}
 	// x.Str{"foo"}
 	// "%!USAGE: x.Seq{...rule}"

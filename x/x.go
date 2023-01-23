@@ -145,15 +145,15 @@ func JoinStr(args ...any) string {
 // compatible types joined together into a single Str type.
 func CombineStr(args ...any) []any {
 	rules := []any{}
-	comb := []any{}
+	comb := Str{}
 	var combining bool
 	for _, it := range args {
 		switch it.(type) {
 		case Name, Save, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
 			Max, Mmx, Rep, See, Not, To, Any, Rng, End:
 			if combining {
-				rules = append(rules, `x.Str{"`+JoinStr(comb...)+`"}`)
-				comb = []any{}
+				rules = append(rules, comb)
+				comb = Str{}
 				combining = false
 			}
 			rules = append(rules, it)
@@ -163,7 +163,7 @@ func CombineStr(args ...any) []any {
 		}
 	}
 	if combining {
-		rules = append(rules, `x.Str{"`+JoinStr(comb...)+`"}`)
+		rules = append(rules, comb)
 	}
 	return rules
 }
@@ -380,6 +380,7 @@ func (it Is) Print() { fmt.Println(it) }
 type Seq []any
 
 func (rules Seq) String() string {
+
 	switch len(rules) {
 	case 1:
 		it, isslice := rules[0].([]any)
@@ -392,7 +393,10 @@ func (rules Seq) String() string {
 		case 1:
 			return String(it[0])
 		default:
-			it := CombineStr(it)
+			it := CombineStr(it...)
+			if len(it) == 1 {
+				return String(it[0])
+			}
 			str := `x.Seq{` + String(it[0])
 			if len(it) > 1 {
 				for _, rule := range it[1:] {
@@ -404,7 +408,10 @@ func (rules Seq) String() string {
 	case 0:
 		return UsageSeq
 	default:
-		rules := CombineStr(rules)
+		rules := CombineStr(rules...)
+		if len(rules) == 1 {
+			return String(rules[0])
+		}
 		str := `x.Seq{` + String(rules[0])
 		if len(rules) > 1 {
 			for _, rule := range rules[1:] {
