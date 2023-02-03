@@ -124,7 +124,7 @@ func (g *Grammar) MakeRule(in any) *Rule {
 		return g.MakeStr(v)
 
 	// rat/x ("ratex") types as expressions
-	case x.Name:
+	case x.N:
 		return g.MakeNamed(v)
 	case x.Save:
 		return g.MakeSave(v)
@@ -211,7 +211,7 @@ func (g *Grammar) AddRule(rule *Rule) *Rule {
 // MakeNamed makes two rules pointing to the same CheckFunc, one unnamed
 // and other named (first argument). Both produce results that have the
 // Name field set.
-func (g *Grammar) MakeNamed(in x.Name) *Rule {
+func (g *Grammar) MakeNamed(in x.N) *Rule {
 
 	text := in.String()
 
@@ -221,12 +221,12 @@ func (g *Grammar) MakeNamed(in x.Name) *Rule {
 	}
 
 	if len(in) != 2 {
-		panic(x.UsageName)
+		panic(x.UsageN)
 	}
 
 	name, is := in[0].(string)
 	if !is {
-		panic(x.UsageName)
+		panic(x.UsageN)
 	}
 
 	// check the cache for the encapsulated rule, else make one

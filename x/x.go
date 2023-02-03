@@ -18,7 +18,7 @@ types are used incorrectly the string representation contains the
 %!ERROR or %!USAGE prefix. Each type also implements a Print() method
 that is shorthand for fmt.Println(self).
 
-    Name - Foo <- rule
+    N    - Foo <- rule
 	  Save - =rule
 	  Val	 - $rule
     Ref  - Bar <- Foo
@@ -149,7 +149,7 @@ func CombineStr(args ...any) []any {
 	var combining bool
 	for _, it := range args {
 		switch it.(type) {
-		case Name, Save, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
+		case N, Save, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
 			Max, Mmx, Rep, See, Not, To, Any, Rng, End:
 			if combining {
 				rules = append(rules, comb)
@@ -168,7 +168,7 @@ func CombineStr(args ...any) []any {
 	return rules
 }
 
-// Name encapsulates another Result with a name. In PEGN these are
+// N (name) encapsulates another Result with a name. In PEGN these are
 // called "significant" (<=) because they can be easily found in the
 // parsed results tree. Names can be any valid Go string but keeping to
 // non-whitespace UTF-8 runes is strongly recommended (and required for
@@ -201,19 +201,19 @@ func CombineStr(args ...any) []any {
 //    Foo <= rule
 //    Bar <= Foo{2}
 //
-type Name []any
+type N []any
 
-func (it Name) String() string {
+func (it N) String() string {
 	if len(it) != 2 {
-		return UsageName
+		return UsageN
 	}
 	if _, is := it[0].(string); !is {
-		return UsageName
+		return UsageN
 	}
-	return fmt.Sprintf(`x.Name{%q, %v}`, it[0], String(it[1]))
+	return fmt.Sprintf(`x.N{%q, %v}`, it[0], String(it[1]))
 }
 
-func (it Name) Print() { fmt.Println(it) }
+func (it N) Print() { fmt.Println(it) }
 
 // Save saves the results of a successful rule as a rule representing
 // the literal output of that result allowing it to be used later with

@@ -2,7 +2,7 @@ package x
 
 var (
 	SyntaxError = `"%!ERROR: invalid rat/x type or syntax"`
-	UsageName   = `"%!USAGE: x.Name{name, rule}"`
+	UsageN      = `"%!USAGE: x.N{name, rule}"`
 	UsageSave   = `"%!USAGE: x.Save{name}"`
 	UsageVal    = `"%!USAGE: x.Val{name}"`
 	UsageRef    = `"%!USAGE: x.Ref{name}"`

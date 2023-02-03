@@ -132,20 +132,20 @@ func ExamplePach_str_Combined() {
 
 func ExamplePack_named() {
 
-	g := rat.Pack(x.Name{`foo`, true})
+	g := rat.Pack(x.N{`foo`, true})
 	g.Print()
 
 	g.Scan(`true`).Print()
 
 	// Output:
-	// x.Name{"foo", x.Str{"true"}}
+	// x.N{"foo", x.Str{"true"}}
 	// {"N":"foo","B":0,"E":4,"R":"true"}
 
 }
 func ExamplePack_ref() {
 
 	g := rat.Pack(x.Ref{`Foo`})
-	g.MakeRule(x.Name{`Foo`, `foo`})
+	g.MakeRule(x.N{`Foo`, `foo`})
 	g.Print()
 
 	g.Rules[`x.Str{"foo"}`].Print()
@@ -157,7 +157,7 @@ func ExamplePack_ref() {
 	// Output:
 	// x.Ref{"Foo"}
 	// x.Str{"foo"}
-	// x.Name{"Foo", x.Str{"foo"}}
+	// x.N{"Foo", x.Str{"foo"}}
 	// {"N":"Foo","B":0,"E":3,"R":"foo"}
 	// {"B":0,"E":3,"R":"foo"}
 
@@ -166,8 +166,8 @@ func ExamplePack_ref() {
 func ExamplePack_save() {
 
 	g := new(rat.Grammar).Init()
-	g.MakeRule(x.Name{`Post`, x.Mmx{3, 8, '`'}})
-	g.Pack(x.Name{`Fenced`, x.Seq{x.Save{`Post`}, x.To{x.Val{`Post`}}, x.Val{`Post`}}})
+	g.MakeRule(x.N{`Post`, x.Mmx{3, 8, '`'}})
+	g.Pack(x.N{`Fenced`, x.Seq{x.Save{`Post`}, x.To{x.Val{`Post`}}, x.Val{`Post`}}})
 	g.Print()
 
 	// one step at a time
@@ -181,7 +181,7 @@ func ExamplePack_save() {
 	g.Scan("```.......`````").Print()
 
 	// Output:
-	// x.Name{"Fenced", x.Seq{x.Save{"Post"}, x.To{x.Val{"Post"}}, x.Val{"Post"}}}
+	// x.N{"Fenced", x.Seq{x.Save{"Post"}, x.To{x.Val{"Post"}}, x.Val{"Post"}}}
 	// {"N":"Post","B":0,"E":4,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3},{"B":3,"E":4}],"R":"````"}
 	// {"N":"Post","B":0,"E":4,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3},{"B":3,"E":4}],"R":"````"}
 	// {"B":0,"E":4,"R":"````````"}
@@ -194,7 +194,7 @@ func ExamplePack_save() {
 func ExamplePack_one_Named() {
 
 	one := x.One{`foo`, `bar`}
-	Foo := x.Name{`Foo`, one}
+	Foo := x.N{`Foo`, one}
 	g := rat.Pack(Foo)
 	g.Print()
 
@@ -210,7 +210,7 @@ func ExamplePack_one_Named() {
 	g.Scan(`fobar`).Print()
 
 	// Output:
-	// x.Name{"Foo", x.One{x.Str{"foo"}, x.Str{"bar"}}}
+	// x.N{"Foo", x.One{x.Str{"foo"}, x.Str{"bar"}}}
 	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foobar"}
 	// foo
 	// {"N":"Foo","B":0,"E":3,"C":[{"B":0,"E":3}],"R":"barrr"}

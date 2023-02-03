@@ -93,18 +93,18 @@ func ExampleCombineStr() {
 
 }
 
-// ------------------------------- Name -------------------------------
+// ------------------------------- N -------------------------------
 
-func ExampleName() {
+func ExampleN() {
 
-	x.Name{`FooName`, `foo`}.Print()
-	x.Name{`FooName`, `foo`, `toomuch`}.Print()
-	x.Name{false, `foo`}.Print()
+	x.N{`FooName`, `foo`}.Print()
+	x.N{`FooName`, `foo`, `toomuch`}.Print()
+	x.N{false, `foo`}.Print()
 
 	// Output:
-	// x.Name{"FooName", x.Str{"foo"}}
-	// "%!USAGE: x.Name{name, rule}"
-	// "%!USAGE: x.Name{name, rule}"
+	// x.N{"FooName", x.Str{"foo"}}
+	// "%!USAGE: x.N{name, rule}"
+	// "%!USAGE: x.N{name, rule}"
 
 }
 
@@ -131,7 +131,7 @@ func ExampleRef() {
 
 func ExampleSave() {
 
-	_ = x.Name{`Foo`, x.Str{`foo`}}
+	_ = x.N{`Foo`, x.Str{`foo`}}
 	save := x.Save{`Foo`}
 	save.Print()
 
@@ -149,7 +149,7 @@ func ExampleSave() {
 
 func ExampleVal() {
 
-	_ = x.Name{`Foo`, x.Str{`foo`}}
+	_ = x.N{`Foo`, x.Str{`foo`}}
 	_ = x.Save{`Foo`}
 	val := x.Val{`Foo`}
 	val.Print()
