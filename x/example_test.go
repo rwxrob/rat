@@ -127,21 +127,21 @@ func ExampleRef() {
 
 }
 
-// -------------------------------- Save -------------------------------
+// -------------------------------- Sav -------------------------------
 
-func ExampleSave() {
+func ExampleSav() {
 
 	_ = x.N{`Foo`, x.Str{`foo`}}
-	save := x.Save{`Foo`}
+	save := x.Sav{`Foo`}
 	save.Print()
 
-	x.Save{false}.Print()
-	x.Save{}.Print()
+	x.Sav{false}.Print()
+	x.Sav{}.Print()
 
 	// Output:
-	// x.Save{"Foo"}
-	// "%!USAGE: x.Save{name}"
-	// "%!USAGE: x.Save{name}"
+	// x.Sav{"Foo"}
+	// "%!USAGE: x.Sav{name}"
+	// "%!USAGE: x.Sav{name}"
 
 }
 
@@ -150,7 +150,7 @@ func ExampleSave() {
 func ExampleVal() {
 
 	_ = x.N{`Foo`, x.Str{`foo`}}
-	_ = x.Save{`Foo`}
+	_ = x.Sav{`Foo`}
 	val := x.Val{`Foo`}
 	val.Print()
 

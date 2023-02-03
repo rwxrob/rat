@@ -36,7 +36,7 @@ var DefaultRuleName = `Rule`
 type Grammar struct {
 	Trace int              // activate logs for debug visibility
 	Rules map[string]*Rule // keyed to Rule.Name (not Text)
-	Saved map[string]*Rule // dynamically created literals from Save
+	Saved map[string]*Rule // dynamically created literals from Sav
 	Main  *Rule            // entry point for Check or Scan
 
 	ruleid int // auto-incrementing for ever unnamed rule added.
@@ -126,7 +126,7 @@ func (g *Grammar) MakeRule(in any) *Rule {
 	// rat/x ("ratex") types as expressions
 	case x.N:
 		return g.MakeNamed(v)
-	case x.Save:
+	case x.Sav:
 		return g.MakeSave(v)
 	case x.Val:
 		return g.MakeVal(v)
@@ -280,7 +280,7 @@ func (g *Grammar) MakeRef(in x.Ref) *Rule {
 	return rule
 }
 
-func (g *Grammar) MakeSave(in x.Save) *Rule {
+func (g *Grammar) MakeSave(in x.Sav) *Rule {
 
 	name := in.String()
 
@@ -293,12 +293,12 @@ func (g *Grammar) MakeSave(in x.Save) *Rule {
 	g.AddRule(rule)
 
 	if len(in) != 1 {
-		panic(x.UsageSave)
+		panic(x.UsageSav)
 	}
 
 	key, is := in[0].(string)
 	if !is {
-		panic(x.UsageSave)
+		panic(x.UsageSav)
 	}
 
 	rule.Check = func(r []rune, i int) Result {

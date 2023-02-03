@@ -19,7 +19,7 @@ types are used incorrectly the string representation contains the
 that is shorthand for fmt.Println(self).
 
     N    - Foo <- rule
-	  Save - =rule
+	  Sav  - =rule
 	  Val	 - $rule
     Ref  - Bar <- Foo
     Is   - boolean class function
@@ -149,7 +149,7 @@ func CombineStr(args ...any) []any {
 	var combining bool
 	for _, it := range args {
 		switch it.(type) {
-		case N, Save, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
+		case N, Sav, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
 			Max, Mmx, Rep, See, Not, To, Any, Rng, End:
 			if combining {
 				rules = append(rules, comb)
@@ -215,7 +215,7 @@ func (it N) String() string {
 
 func (it N) Print() { fmt.Println(it) }
 
-// Save saves the results of a successful rule as a rule representing
+// Sav saves the results of a successful rule as a rule representing
 // the literal output of that result allowing it to be used later with
 // Val. There can only be one saved result for any saved rule at a time.
 // Like Ref, the first argument must be a string matching the name of
@@ -226,24 +226,24 @@ func (it N) Print() { fmt.Println(it) }
 //     FenceTok  <- ( '~' / BQ){3,8}
 //     Fenced    <- =FenceTok .. $FenceTok
 //
-type Save []any
+type Sav []any
 
-func (args Save) String() string {
+func (args Sav) String() string {
 	switch len(args) {
 	case 1:
 		_, is := args[0].(string)
 		if !is {
-			return UsageSave
+			return UsageSav
 		}
-		return fmt.Sprintf(`x.Save{%q}`, args[0])
+		return fmt.Sprintf(`x.Sav{%q}`, args[0])
 	default:
-		return UsageSave
+		return UsageSav
 	}
 }
 
-func (it Save) Print() { fmt.Println(it) }
+func (it Sav) Print() { fmt.Println(it) }
 
-// Val uses a literal rule created with Save.
+// Val uses a literal rule created with Sav.
 type Val []any
 
 func (args Val) String() string {
@@ -265,7 +265,7 @@ func (it Val) Print() { fmt.Println(it) }
 // allowing reference to entirely different rules to be used before they
 // are imported. This prevents having to assign rules to variables and
 // use them in subsequent rules. This also allows looking up dynamically
-// created rules such as those from Save ($Foo). The same cached lookup
+// created rules such as those from Sav ($Foo). The same cached lookup
 // is just done at a different point during runtime.
 //
 // Note that use of Ref should be avoided when the rule referenced is

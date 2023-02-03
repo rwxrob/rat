@@ -167,11 +167,11 @@ func ExamplePack_save() {
 
 	g := new(rat.Grammar).Init()
 	g.MakeRule(x.N{`Post`, x.Mmx{3, 8, '`'}})
-	g.Pack(x.N{`Fenced`, x.Seq{x.Save{`Post`}, x.To{x.Val{`Post`}}, x.Val{`Post`}}})
+	g.Pack(x.N{`Fenced`, x.Seq{x.Sav{`Post`}, x.To{x.Val{`Post`}}, x.Val{`Post`}}})
 	g.Print()
 
 	// one step at a time
-	g.Rules[`x.Save{"Post"}`].Scan("````").Print()
+	g.Rules[`x.Sav{"Post"}`].Scan("````").Print()
 	g.Rules[`Post`].Scan("````").Print()
 	g.Rules[`x.Val{"Post"}`].Scan("````````").Print()
 	g.Rules[`x.To{x.Val{"Post"}}`].Scan("....``````").Print()
@@ -181,7 +181,7 @@ func ExamplePack_save() {
 	g.Scan("```.......`````").Print()
 
 	// Output:
-	// x.N{"Fenced", x.Seq{x.Save{"Post"}, x.To{x.Val{"Post"}}, x.Val{"Post"}}}
+	// x.N{"Fenced", x.Seq{x.Sav{"Post"}, x.To{x.Val{"Post"}}, x.Val{"Post"}}}
 	// {"N":"Post","B":0,"E":4,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3},{"B":3,"E":4}],"R":"````"}
 	// {"N":"Post","B":0,"E":4,"C":[{"B":0,"E":1},{"B":1,"E":2},{"B":2,"E":3},{"B":3,"E":4}],"R":"````"}
 	// {"B":0,"E":4,"R":"````````"}
