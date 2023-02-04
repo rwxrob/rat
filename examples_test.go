@@ -241,7 +241,7 @@ func ExamplePack_is() {
 
 func ExamplePack_seq() {
 
-	g := rat.Pack(`foo`, `bar`, x.One{true, false}, x.Opt{`baz`})
+	g := rat.Pack(`foo`, `bar`, x.One{true, false}, x.Mmx{0, 1, `baz`})
 	g.Print()
 
 	g.Scan(`foobartrue`).PrintText()
@@ -251,7 +251,7 @@ func ExamplePack_seq() {
 	g.Scan(`foobarbaz`).PrintError()
 
 	// Output:
-	// x.Seq{x.Str{"foobar"}, x.One{x.Str{"true"}, x.Str{"false"}}, x.Opt{x.Str{"baz"}}}
+	// x.Seq{x.Str{"foobar"}, x.One{x.Str{"true"}, x.Str{"false"}}, x.Mmx{0, 1, x.Str{"baz"}}}
 	// foobartrue
 	// foobartruebaz
 	// foobarfalsebaz
@@ -290,125 +290,6 @@ func ExamplePack_mmx() {
 	// foofoofoo
 	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
 	// {"B":0,"E":0,"X":"expected: x.Mmx{1, 3, x.Str{\"foo\"}}","R":"barfoofoo"}
-
-}
-
-func ExamplePack_mn1() {
-
-	g := rat.Pack(x.Mn1{`foo`})
-	g.Print()
-
-	g.Scan(`foo`).PrintText()
-	g.Scan(`foo`).Print()
-
-	g.Scan(`foofoo`).PrintText()
-	g.Scan(`foofoo`).Print()
-
-	g.Scan(`foofoofoo`).PrintText()
-	g.Scan(`foofoofoo`).Print()
-
-	g.Scan(`foofoofoofoo`).PrintText()
-	g.Scan(`foofoofoofoo`).Print()
-
-	g.Scan(`barfoofoo`).Print()
-
-	// Output:
-	// x.Mn1{x.Str{"foo"}}
-	// foo
-	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
-	// foofoo
-	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
-	// foofoofoo
-	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
-	// foofoofoofoo
-	// {"B":0,"E":12,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
-	// {"B":0,"E":0,"X":"expected: x.Mn1{x.Str{\"foo\"}}","R":"barfoofoo"}
-
-}
-
-func ExamplePack_mn0() {
-
-	g := rat.Pack(x.Mn0{`foo`})
-	g.Print()
-
-	g.Scan(`foo`).PrintText()
-	g.Scan(`foo`).Print()
-
-	g.Scan(`foofoo`).PrintText()
-	g.Scan(`foofoo`).Print()
-
-	g.Scan(`foofoofoo`).PrintText()
-	g.Scan(`foofoofoo`).Print()
-
-	g.Scan(`foofoofoofoo`).PrintText()
-	g.Scan(`foofoofoofoo`).Print()
-
-	g.Scan(`barfoofoo`).Print()
-
-	// Output:
-	// x.Mn0{x.Str{"foo"}}
-	// foo
-	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
-	// foofoo
-	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
-	// foofoofoo
-	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
-	// foofoofoofoo
-	// {"B":0,"E":12,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9},{"B":9,"E":12}],"R":"foofoofoofoo"}
-	// {"B":0,"E":0,"R":"barfoofoo"}
-
-}
-
-func ExamplePack_min() {
-
-	g := rat.Pack(x.Min{2, `foo`})
-	g.Print()
-
-	g.Scan(`foofoo`).PrintText()
-	g.Scan(`foofoo`).Print()
-
-	g.Scan(`foofoofoo`).PrintText()
-	g.Scan(`foofoofoo`).Print()
-
-	g.Scan(`foo`).Print()
-	g.Scan(`barfoofoo`).Print()
-
-	// Output:
-	// x.Min{2, x.Str{"foo"}}
-	// foofoo
-	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
-	// foofoofoo
-	// {"B":0,"E":9,"C":[{"B":0,"E":3},{"B":3,"E":6},{"B":6,"E":9}],"R":"foofoofoo"}
-	// {"B":0,"E":3,"X":"expected: x.Min{2, x.Str{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foo"}
-	// {"B":0,"E":0,"X":"expected: x.Min{2, x.Str{\"foo\"}}","R":"barfoofoo"}
-
-}
-
-func ExamplePack_max() {
-
-	g := rat.Pack(x.Max{2, `foo`})
-	g.Print()
-
-	g.Scan(`foo`).PrintText()
-	g.Scan(`foo`).Print()
-
-	g.Scan(`foofoo`).PrintText()
-	g.Scan(`foofoo`).Print()
-
-	g.Scan(`barfoofoo`).PrintText()
-	g.Scan(`barfoofoo`).Print()
-
-	g.Scan(`foofoofoo`).Print()
-
-	// Output:
-	// x.Max{2, x.Str{"foo"}}
-	// foo
-	// {"B":0,"E":3,"C":[{"B":0,"E":3}],"R":"foo"}
-	// foofoo
-	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoo"}
-	//
-	// {"B":0,"E":0,"R":"barfoofoo"}
-	// {"B":0,"E":6,"X":"expected: x.Max{2, x.Str{\"foo\"}}","C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
 
 }
 
@@ -488,44 +369,6 @@ func ExamplePack_rng() {
 	// 🙉
 	// {"B":0,"E":1,"R":"🙉"}
 	// {"B":0,"E":0,"X":"expected: x.Rng{'😀', '🙏'}","R":"🚆"}
-
-}
-
-func ExamplePack_opt() {
-
-	g := rat.Pack(x.Opt{`foo`})
-	g.Print()
-
-	g.Scan(`foo`).PrintText()
-	g.Scan(`foo`).Print()
-
-	g.Scan(`bar`).PrintText()
-	g.Scan(`bar`).Print()
-
-	// Output:
-	// x.Opt{x.Str{"foo"}}
-	// foo
-	// {"B":0,"E":3,"R":"foo"}
-	//
-	// {"B":0,"E":0,"R":"bar"}
-
-}
-
-func ExamplePack_rep() {
-
-	g := rat.Pack(x.Rep{2, `foo`})
-	g.Print()
-
-	g.Scan(`foofoofoo`).PrintText()
-	g.Scan(`foofoofoo`).Print()
-
-	g.Scan(`foobar`).Print()
-
-	// Output:
-	// x.Rep{2, x.Str{"foo"}}
-	// foofoo
-	// {"B":0,"E":6,"C":[{"B":0,"E":3},{"B":3,"E":6}],"R":"foofoofoo"}
-	// {"B":0,"E":3,"X":"expected: x.Rep{2, x.Str{\"foo\"}}","C":[{"B":0,"E":3}],"R":"foobar"}
 
 }
 

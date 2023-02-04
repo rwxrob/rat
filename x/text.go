@@ -11,13 +11,7 @@ var (
 	UsageStr    = `"%!USAGE: x.Str{...any}"`
 	UsageSeq    = `"%!USAGE: x.Seq{...rule}"`
 	UsageOne    = `"%!USAGE: x.One{...rule}"`
-	UsageOpt    = `"%!USAGE: x.Opt{rule}"`
-	UsageMn1    = `"%!USAGE: x.Mn1{rule}"`
-	UsageMn0    = `"%!USAGE: x.Mn0{rule}"`
-	UsageMin    = `"%!USAGE: x.Min{n, rule}"`
-	UsageMax    = `"%!USAGE: x.Max{n, rule}"`
-	UsageMmx    = `"%!USAGE: x.Mmx{n, m, rule}"`
-	UsageRep    = `"%!USAGE: x.Rep{n, rule}"`
+	UsageMmx    = `"%!USAGE: x.Mmx{m, n, rule}"`
 	UsageSee    = `"%!USAGE: x.See{rule}"`
 	UsageNot    = `"%!USAGE: x.Not{rule}"`
 	UsageTo     = `"%!USAGE: x.To{rule}"`

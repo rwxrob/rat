@@ -240,21 +240,6 @@ func ExampleOne() {
 
 }
 
-// -------------------------------- Opt -------------------------------
-
-func ExampleOpt() {
-
-	x.Opt{`foo`}.Print()
-	x.Opt{}.Print()
-	x.Opt{`foo`, false}.Print()
-
-	// Output:
-	// x.Opt{x.Str{"foo"}}
-	// "%!USAGE: x.Opt{rule}"
-	// "%!USAGE: x.Opt{rule}"
-
-}
-
 // -------------------------------- Str -------------------------------
 
 func ExampleStr() {
@@ -295,69 +280,6 @@ func ExampleStr_any_Slice() {
 
 }
 
-// -------------------------------- Mn1 -------------------------------
-
-func ExampleMn1() {
-
-	x.Mn1{`foo`}.Print()
-	x.Mn1{`foo`, `bar`}.Print()
-	x.Mn1{}.Print()
-
-	// Output:
-	// x.Mn1{x.Str{"foo"}}
-	// "%!USAGE: x.Mn1{rule}"
-	// "%!USAGE: x.Mn1{rule}"
-}
-
-// -------------------------------- Mn0 -------------------------------
-
-func ExampleMn0() {
-
-	x.Mn0{`foo`}.Print()
-	x.Mn0{}.Print()
-	x.Mn0{`foo`, `bar`}.Print()
-
-	// Output:
-	// x.Mn0{x.Str{"foo"}}
-	// "%!USAGE: x.Mn0{rule}"
-	// "%!USAGE: x.Mn0{rule}"
-
-}
-
-// -------------------------------- Min -------------------------------
-
-func ExampleMin() {
-
-	x.Min{2, `foo`}.Print()
-	x.Min{}.Print()
-	x.Min{2, `foo`, `bar`}.Print()
-	x.Min{`two`, `foo`}.Print()
-
-	// Output:
-	// x.Min{2, x.Str{"foo"}}
-	// "%!USAGE: x.Min{n, rule}"
-	// "%!USAGE: x.Min{n, rule}"
-	// "%!USAGE: x.Min{n, rule}"
-
-}
-
-// -------------------------------- Max -------------------------------
-
-func ExampleMax() {
-
-	x.Max{2, `foo`}.Print()
-	x.Max{}.Print()
-	x.Max{2, `foo`, `bar`}.Print()
-	x.Max{`two`, `foo`}.Print()
-
-	// Output:
-	// x.Max{2, x.Str{"foo"}}
-	// "%!USAGE: x.Max{n, rule}"
-	// "%!USAGE: x.Max{n, rule}"
-	// "%!USAGE: x.Max{n, rule}"
-
-}
-
 // -------------------------------- Mmx -------------------------------
 
 func ExampleMmx() {
@@ -370,27 +292,28 @@ func ExampleMmx() {
 
 	// Output:
 	// x.Mmx{2, 4, x.Str{"foo"}}
-	// "%!USAGE: x.Mmx{n, m, rule}"
-	// "%!USAGE: x.Mmx{n, m, rule}"
-	// "%!USAGE: x.Mmx{n, m, rule}"
-	// "%!USAGE: x.Mmx{n, m, rule}"
+	// "%!USAGE: x.Mmx{m, n, rule}"
+	// "%!USAGE: x.Mmx{m, n, rule}"
+	// "%!USAGE: x.Mmx{m, n, rule}"
+	// "%!USAGE: x.Mmx{m, n, rule}"
 
 }
 
-// -------------------------------- Rep -------------------------------
+func ExampleMmx_no_Max() {
 
-func ExampleRep() {
-
-	x.Rep{2, `foo`}.Print()
-	x.Rep{}.Print()
-	x.Rep{2, `foo`, `bar`}.Print()
-	x.Rep{`two`, `foo`}.Print()
+	x.Mmx{2, -1, `foo`}.Print()
 
 	// Output:
-	// x.Rep{2, x.Str{"foo"}}
-	// "%!USAGE: x.Rep{n, rule}"
-	// "%!USAGE: x.Rep{n, rule}"
-	// "%!USAGE: x.Rep{n, rule}"
+	// x.Mmx{2, -1, x.Str{"foo"}}
+
+}
+
+func ExampleMmx_max_More_Than_Min() {
+
+	x.Mmx{2, 1, `foo`}.Print()
+
+	// Output:
+	// "%!USAGE: x.Mmx{m, n, rule}"
 
 }
 

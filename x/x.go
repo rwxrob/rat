@@ -25,18 +25,12 @@ that is shorthand for fmt.Println(self).
     Is   - boolean class function
     Seq  - (rule1 rule2)
     One  - (rule1 / rule2)
-    Opt  - rule?
     Str  - ('foo' SP x20 u2563 CR LF)
-    Mn1  - rule+
-    Mn0  - rule*
-    Min  - rule{n,}
-    Max  - rule{0,n}
-    Mmx  - rule{m,n}
-    Rep  - rule{n}
+    Mmx  - rule? / rule+ / rule* / rule{n} / rule{m,} / rule{m,n} / rule{0,n}
     See  - &rule
     Not  - !rule
-    To   - .. rule or ..+ or ..* or ..? or ..{n} or ..{m,n} or ..{m,} or ..{,n}
-    Any  - . or .+ or .* or .? or .{n} or .{m,n} or .{m,} or .{,n}
+    To   - (.. / ..+ / ..* / ..? / ..{n} / ..{m,n} / ..{m,} ) rule
+    Any  - . / .+ / .* / .? / .{n} / .{m,n} / .{m,}
 		Rng  - [a-f] / [x43-x54] / [u3243-u4545]
     End  - !.
 
@@ -149,8 +143,7 @@ func CombineStr(args ...any) []any {
 	var combining bool
 	for _, it := range args {
 		switch it.(type) {
-		case N, Sav, Val, Ref, Is, Seq, One, Opt, Mn1, Mn0, Min,
-			Max, Mmx, Rep, See, Not, To, Any, Rng, End:
+		case N, Sav, Val, Ref, Is, Seq, One, Mmx, See, Not, To, Any, Rng, End:
 			if combining {
 				rules = append(rules, comb)
 				comb = Str{}
@@ -469,24 +462,6 @@ func (rules One) String() string {
 
 func (rules One) Print() { fmt.Println(rules) }
 
-// Opt represents a single optional rule. Note that the result never
-// fails, only advances on success.
-//
-// PEGN
-//
-//     rule?
-//
-type Opt []any
-
-func (it Opt) String() string {
-	if len(it) != 1 {
-		return UsageOpt
-	}
-	return `x.Opt{` + String(it[0]) + `}`
-}
-
-func (rules Opt) Print() { fmt.Println(rules) }
-
 // Str represents a sequence of specific runes and allows combining from
 // any other type into a single rule by rendering the type as its Go
 // string equivalent. All values are combined into a single Go string.
@@ -525,127 +500,49 @@ func (rules Str) String() string {
 
 func (s Str) Print() { fmt.Println(s) }
 
-// Mn1 represents one or more of a single rule. If the first
-// and only value is an []any slice assume it is to be expanded
-// ([]any{}...).
-//
-// PEGN
-//
-//     rule+
-//
-type Mn1 []any
-
-func (it Mn1) String() string {
-	if len(it) != 1 {
-		return UsageMn1
-	}
-	return `x.Mn1{` + String(it[0]) + `}`
-}
-
-func (it Mn1) Print() { fmt.Println(it) }
-
-// Mn0 represents zero or more of a single rule.
-//
-// PEGN
-//
-//     rule*
-//
-type Mn0 []any // rule*
-
-func (it Mn0) String() string {
-	if len(it) != 1 {
-		return UsageMn0
-	}
-	return `x.Mn0{` + String(it[0]) + `}`
-}
-
-func (it Mn0) Print() { fmt.Println(it) }
-
-// Min represents a minimum number (n) of a single rule.
-//
-// PEGN
-//
-//     rule{n,}
-//
-type Min []any
-
-func (it Min) String() string {
-	if len(it) != 2 {
-		return UsageMin
-	}
-	if _, isint := it[0].(int); !isint {
-		return UsageMin
-	}
-	return fmt.Sprintf(`x.Min{%v, %v}`, it[0], String(it[1]))
-}
-
-func (it Min) Print() { fmt.Println(it) }
-
-// Max represents a maximum number (n) of a single rule. Minimum is
-// assumed to be zero.
-//
-// PEGN
-//
-//     rule{0,n}
-//
-type Max []any
-
-func (it Max) String() string {
-	if len(it) != 2 {
-		return UsageMax
-	}
-	if _, isint := it[0].(int); !isint {
-		return UsageMax
-	}
-	return fmt.Sprintf(`x.Max{%v, %v}`, it[0], String(it[1]))
-}
-
-func (it Max) Print() { fmt.Println(it) }
-
 // Mmx represents a minimum (m) and maximum number (n) of a single rule.
-// The minimum must be greater than zero. The maximum must be greater
-// than the minimum.
+// When both a minimum and maximum are provided the maximum must be
+// greater than the minimum with the exception of -1, which means there
+// is no maximum. Use a minimum and maximum that are identical for an
+// exact count.
+//
+// Note that this one rule takes many different forms when written in
+// PEG and regular expressions. Converting these into the single Mmx
+// rule conserves memory during memoization and improves speed during delegation.
 //
 // PEGN
 //
 //     rule{m,n}
+//     rule?
+//     rule+
+//     rule*
+//     rule{m,}
+//     rule{0,n}
+//     rule{n}
 //
 type Mmx []any
 
 func (it Mmx) String() string {
+	var m, n int
+	var isint bool
+
 	if len(it) != 3 {
 		return UsageMmx
 	}
-	if _, isint := it[0].(int); !isint {
+	if m, isint = it[0].(int); !isint {
 		return UsageMmx
 	}
-	if _, isint := it[1].(int); !isint {
+	if n, isint = it[1].(int); !isint {
 		return UsageMmx
 	}
+	if n < m && n != -1 {
+		return UsageMmx
+	}
+
 	return fmt.Sprintf(`x.Mmx{%v, %v, %v}`, it[0], it[1], String(it[2]))
 }
 
 func (it Mmx) Print() { fmt.Println(it) }
-
-// Rep represents a minimum and maximum number (n) of a single rule.
-//
-// PEGN
-//
-//     rule{n}
-//
-type Rep []any
-
-func (it Rep) String() string {
-	if len(it) != 2 {
-		return UsageRep
-	}
-	if _, isint := it[0].(int); !isint {
-		return UsageRep
-	}
-	return fmt.Sprintf(`x.Rep{%v, %v}`, it[0], String(it[1]))
-}
-
-func (it Rep) Print() { fmt.Println(it) }
 
 // See represents a positive lookahead assertion. The end of the result
 // is always unchanged, but an error set if rule assertion fails.
