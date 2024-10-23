@@ -2,13 +2,12 @@ package rat
 
 import (
 	"fmt"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // Result contains the result of an evaluated Rule function along with
-// its own []rune slice (R).
+// its own shared []rune slice (R).
 //
 // N (for "Name") is a string name for a result mapped to the x.Name
 // rule. This makes for easy reading and walking of results trees since
@@ -29,18 +28,25 @@ import (
 // farthest possible point even if the rule fails (and an Err set). This
 // allows recovery attempts from that position.
 //
-// C (for "children") contains results within this result, sub-matches,
-// equivalent to parenthesized patterns of a regular expression.
-//
-// X contains any error encountered while parsing.
-//
 // Note that B == E does not indicate failure. E is usually greater than
 // B, but not necessarily, for example, for lookahead rules are
 // successful without advancing the position at all. E is also greater
 // than B if a partial match was made that still resulted in an error.
 // Only checking X can absolutely confirm a rule failure.
 //
-// Avoid taking reference to Result
+// X (for "expected") contains any error encountered while parsing.
+//
+// C (for "children") contains results within this result, sub-matches,
+// equivalent to parenthesized patterns of a regular expression.
+//
+// R (for "result" or "runes" or "buffer") contains the slice with all
+// the data in it. Since Go uses the same underlying array for any slice,
+// no matter how many times it is referenced, there is no loss of memory
+// efficiency even though marshaling a [Result] would produce duplicate
+// output. For this reason [MarshalJSON] omits this field from any
+// children ([C]) when marshaling.
+//
+// # Avoid taking reference to Result
 //
 // A Result is already made up of references so no further dereferencing
 // is required. The buffer (R) is a slice and therefore all slices point
@@ -48,7 +54,6 @@ import (
 // saved in any Result. Rather, the beginning and ending positions
 // within the buffer data are stored and retrieved when needed with
 // methods such as Text().
-//
 type Result struct {
 	N string   // string name (x.Name)
 	I int      // integer identifier (x.ID)
